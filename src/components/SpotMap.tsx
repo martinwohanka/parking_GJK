@@ -10,6 +10,13 @@ function tone(spot: SpotOverview) {
   return 'border-emerald-300 bg-emerald-100 text-emerald-900 hover:bg-emerald-200';
 }
 
+/** Zkrácený popisek pro úzká podélná stání, kde se delší text nevejde. */
+function shortStatusLabel(spot: SpotOverview): string {
+  if (!spot.spot.isActive) return 'mimo provoz';
+  if (spot.totalSlotsTotal === 0) return '—';
+  return `${spot.freeSlotsTotal} h`;
+}
+
 function statusLabel(spot: SpotOverview): string {
   if (!spot.spot.isActive) return 'mimo provoz';
   if (spot.totalSlotsTotal === 0) return 'týden proběhl';
@@ -35,13 +42,17 @@ function SpotTile({
   return (
     <Link
       href={`/misto/${encodeURIComponent(spot.spot.code)}?tyden=${weekStart}`}
-      className={`flex flex-col items-center justify-center rounded-lg border-2 px-2 text-center transition ${
-        orientation === 'portrait' ? 'min-h-[9.5rem] py-4' : 'min-h-[3.5rem] flex-1 py-2'
+      className={`flex flex-col items-center justify-center rounded-lg border-2 px-1 text-center transition ${
+        orientation === 'portrait'
+          ? 'min-h-[9.5rem] py-4'
+          : 'ml-auto min-h-[3.5rem] w-3/5 flex-1 py-2'
       } ${tone(spot)}`}
-      title={spot.spot.label ?? `Místo ${spot.spot.code}`}
+      title={`Místo ${spot.spot.code}${spot.spot.label ? ` – ${spot.spot.label}` : ''} · ${statusLabel(spot)}`}
     >
       <span className="text-lg font-bold leading-none">{spot.spot.code}</span>
-      <span className="mt-1 text-[11px] leading-tight">{statusLabel(spot)}</span>
+      <span className="mt-1 text-[10px] leading-tight sm:text-[11px]">
+        {orientation === 'portrait' ? shortStatusLabel(spot) : statusLabel(spot)}
+      </span>
       {spot.days.some((d) => d.hasMine) && (
         <span className="mt-1 rounded bg-brand-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
           moje
@@ -85,28 +96,22 @@ export function SpotMap({
       </div>
 
       <div className="mx-auto max-w-xl rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-3">
-        {/* Užší levý sloupec = podélná stání u zdi, širší pravý = kolmá stání. */}
-        <div className="grid grid-cols-[6rem_1fr] gap-3 sm:grid-cols-[8rem_1fr] sm:gap-5">
-          {/* Vlevo: nahoře vstup do budovy, dole výjezd z parkoviště. */}
-          <div className="flex h-full flex-col">
-            <p className="rounded-md bg-slate-200 px-1 py-1 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide text-slate-600 sm:text-[11px]">
-              Vstup do budovy
-            </p>
-            <div className="mt-2 space-y-2">
-              {left.map((spot) => (
-                <SpotTile
-                  key={spot.spot.id}
-                  spot={spot}
-                  weekStart={weekStart}
-                  orientation="portrait"
-                />
-              ))}
-            </div>
-            <p className="mt-auto pt-2">
-              <span className="block rounded-md bg-slate-300 px-1 py-1.5 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide text-slate-700 sm:text-[11px]">
-                Výjezd ↓
-              </span>
-            </p>
+        {/* Vstup do budovy je vlevo nahoře, vjezd i výjezd vlevo dole. */}
+        <p className="mb-2 w-36 max-w-full rounded-md bg-slate-200 px-2 py-1 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide text-slate-600 sm:w-40 sm:text-[11px]">
+          Vstup do budovy
+        </p>
+
+        {/* Vlevo úzká podélná stání u zdi, vpravo kratší kolmá stání. */}
+        <div className="grid grid-cols-[4rem_1fr] gap-3 sm:grid-cols-[5.25rem_1fr] sm:gap-5">
+          <div className="space-y-2">
+            {left.map((spot) => (
+              <SpotTile
+                key={spot.spot.id}
+                spot={spot}
+                weekStart={weekStart}
+                orientation="portrait"
+              />
+            ))}
           </div>
 
           {/* Kolmá stání vyplní stejnou výšku jako podélná – plánek pak drží tvar plochy. */}
@@ -121,6 +126,10 @@ export function SpotMap({
             ))}
           </div>
         </div>
+
+        <p className="mt-2 w-36 max-w-full rounded-md bg-slate-300 px-2 py-1.5 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide text-slate-700 sm:w-40 sm:text-[11px]">
+          ⇅ Vjezd i výjezd
+        </p>
 
       </div>
 
