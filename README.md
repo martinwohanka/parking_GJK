@@ -11,7 +11,7 @@ a řeší trestné body za špatné parkování.
 | --- | --- |
 | Přístup na mobilu i PC | Responzivní web (Next.js), stačí prohlížeč |
 | Registrace kantora včetně SPZ | `/registrace`, SPZ povinná, další vozidla lze přidat v profilu |
-| Registrace jen pro školní e-maily | Kontrola domény `@gjk.cz` (`ALLOWED_EMAIL_DOMAIN`) |
+| Registrace jen pro školní e-maily | Kontrola domény `@gjk.cz` (`ALLOWED_EMAIL_DOMAIN`), potvrzovací odkaz se nevyžaduje |
 | Kalendář všedních dní × hodin 7–16 | Detail místa: řádky = dny, kostičky = hodinové sloty, zelená/červená |
 | U obsazených slotů jméno registrátora | Jméno je přímo v červené kostičce i v tooltipu |
 | Rezervace označením slotů + potvrzení | Kliknutím sloty zčervenají, tlačítko „Potvrdit rezervaci“ |
@@ -20,16 +20,14 @@ a řeší trestné body za špatné parkování.
 | Admin edituje/ruší rezervace | `/admin/rezervace` – změna místa, dne i času; kantor dostane e-mail |
 | Vstupní kritéria (tokeny) | Týdenní příděl rezervací, limit na den, limit dní dopředu |
 | Trestné body za špatné parkování | Kdokoli nahlásí SPZ, správce schválí, body snižují příděl až po blokaci |
-| Zmapování parkovacích míst | `/admin/mista` – označení, sekce a pořadí odpovídající plánku |
+| Zmapování parkovacích míst | 10 míst podle plánku; v `/admin/mista` lze měnit označení, sekci, pořadí i dostupnost |
 
 ## Plánek parkoviště
 
 Výchozí data odpovídají náčrtu: sekce **u vstupu do budovy** (místa 8, 9, 10,
-dole výjezd) a sekce **podél zdi** (místa 1–7). Místo č. 1 je na náčrtu
-vyšrafované – je založené s poznámkou, aby se před ostrým provozem ověřilo
-v terénu. Místa lze kdykoli přejmenovat, přidat, deaktivovat nebo přeuspořádat
-v administraci; **doporučujeme čísla fyzicky vyznačit i na parkovišti**, aby
-odpovídala aplikaci.
+dole výjezd) a sekce **podél zdi** (místa 1–7). Všech 10 míst je k dispozici
+a odpovídá skutečnému stavu parkoviště. Místa lze kdykoli přejmenovat, přidat,
+deaktivovat (např. při opravě povrchu) nebo přeuspořádat v administraci.
 
 ## Jak funguje rezervace
 
@@ -129,8 +127,6 @@ tests/logic.test.ts       testy business logiky
 
 ## Poznámky k dalšímu rozvoji
 
-- **Ověření e-mailu při registraci** – nyní stačí adresa ve školní doméně;
-  potvrzovací odkaz by přidal jistotu, že adresa opravdu patří registrujícímu.
 - **Přihlášení přes školní Google/Microsoft účet** místo vlastního hesla.
 - **Fotodokumentace u nahlášení** špatného parkování (nahrání fotky).
 - **Opakované rezervace** (např. každé úterý po celé pololetí).

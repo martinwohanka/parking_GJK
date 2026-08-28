@@ -21,7 +21,7 @@ function hashPassword(password: string): string {
  *  - sekce LEFT (u vstupu do budovy): místa 8–10 shora dolů, dole výjezd.
  */
 const SPOTS = [
-  { code: '1', section: 'RIGHT', position: 1, label: 'U vjezdu', note: 'Na plánku vyšrafováno – před spuštěním ověřit v terénu a fyzicky označit.' },
+  { code: '1', section: 'RIGHT', position: 1, label: 'U vjezdu', note: null },
   { code: '2', section: 'RIGHT', position: 2, label: null, note: null },
   { code: '3', section: 'RIGHT', position: 3, label: null, note: null },
   { code: '4', section: 'RIGHT', position: 4, label: null, note: null },
@@ -47,7 +47,13 @@ async function main() {
   for (const spot of SPOTS) {
     await prisma.parkingSpot.upsert({
       where: { code: spot.code },
-      update: { section: spot.section, position: spot.position, label: spot.label },
+      update: {
+        section: spot.section,
+        position: spot.position,
+        label: spot.label,
+        note: spot.note,
+        isActive: true,
+      },
       create: spot,
     });
   }

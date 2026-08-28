@@ -208,8 +208,8 @@ export function AdminSpots({ spots }: { spots: Spot[] }) {
 
         <p className="mt-3 text-xs text-slate-500">
           Místo s aktivními rezervacemi nelze smazat – nejprve rezervace zrušte, nebo místo pouze
-          deaktivujte (např. při opravě povrchu). Označení míst doporučujeme fyzicky vyznačit i na
-          parkovišti, aby odpovídalo plánku v aplikaci.
+          deaktivujte (např. při opravě povrchu). Označení míst musí odpovídat číslům vyznačeným
+          na parkovišti.
         </p>
       </div>
     </div>
