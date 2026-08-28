@@ -11,8 +11,10 @@ const DB_HINTS = [
   'does not exist in the current database',
   'Unable to open the database file',
   'no such table',
+  'Environment variable not found: DATABASE_URL',
   'P2021',
   'P1003',
+  'P1012',
 ];
 
 function looksLikeMissingDatabase(message: string): boolean {
@@ -31,7 +33,8 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
           <>
             <h1 className="text-lg font-semibold">Databáze není připravená</h1>
             <p className="mt-2 text-sm text-slate-600">
-              V databázi zatím nejsou tabulky. Zastavte aplikaci v terminálu klávesami{' '}
+              Databáze zatím není založená (nebo chybí soubor <code>.env</code> s jejím
+              nastavením). Zastavte aplikaci v terminálu klávesami{' '}
               <kbd className="rounded border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-xs">
                 Ctrl+C
               </kbd>{' '}

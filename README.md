@@ -105,11 +105,21 @@ Zastavíte ji v terminálu klávesami `Ctrl+C`. Příště už stačí `npm run 
 Nejste ve složce projektu. Napište `cd parking_GJK` a příkaz zopakujte;
 `pwd` vypíše, kde právě jste.
 
+**`Environment variable not found: DATABASE_URL` (kód P1012)**
+Chybí soubor `.env`. Stáhněte si nejnovější verzi projektu příkazem `git pull`
+a spusťte `npm run setup` znovu – ten `.env` sám vytvoří.
+
 **„Databáze není připravená“ v prohlížeči**
-Neproběhl krok `npm run setup`. Zastavte aplikaci klávesami `Ctrl+C`, spusťte
-`npm run setup` a pak znovu `npm run dev`. Restart je nutný i tehdy, když jste
-setup spustili až po startu aplikace – běžící server se drží původního,
-prázdného souboru databáze.
+Neproběhl krok `npm run setup`, nebo skončil chybou. Zastavte aplikaci
+klávesami `Ctrl+C`, spusťte `npm run setup` a pak znovu `npm run dev`.
+Restart je nutný i tehdy, když jste setup spustili až po startu aplikace –
+běžící server se drží původního, prázdného souboru databáze.
+
+**`Warning: Next.js inferred your workspace root`**
+Ve složce nad projektem (typicky v domovské) zůstal soubor `package-lock.json`
+z nepovedeného `npm install`. Novější verze projektu už si kořen určuje sama,
+takže stačí `git pull`; zbylý soubor můžete smazat příkazem
+`rm ~/package-lock.json`.
 
 **„Něco se pokazilo“ s jinou hláškou**
 Rozbalte *Podrobnosti pro vývojáře* na chybové stránce, nebo se podívejte do
