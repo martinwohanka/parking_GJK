@@ -6,7 +6,14 @@
  */
 import { spawnSync } from 'node:child_process';
 
-const env = { ...process.env, DATABASE_URL: 'file:./test.db' };
+// Testy běží proti samostatné databázi, aby nesmazaly vývojová data.
+// Adresu lze přepsat proměnnou TEST_DATABASE_URL (např. v CI).
+const env = {
+  ...process.env,
+  DATABASE_URL:
+    process.env.TEST_DATABASE_URL ??
+    'postgresql://postgres@127.0.0.1:5432/parkoviste_test?schema=public',
+};
 
 function run(args) {
   const result = spawnSync('npx', args, { stdio: 'inherit', env, shell: true });

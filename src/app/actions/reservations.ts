@@ -12,6 +12,7 @@ import {
 } from '@/lib/reservations';
 import { getQuota } from '@/lib/tokens';
 import {
+  isMailEnabled,
   reservationCancelledMail,
   reservationCreatedMail,
   reservationsSummaryMail,
@@ -125,11 +126,12 @@ export async function createReservationsAction(
   revalidatePath('/');
   revalidatePath('/rezervace');
 
+  const mailNote = isMailEnabled() ? ` Potvrzení jsme poslali na ${user.email}.` : '';
   return {
     success:
       created.length === 1
-        ? `Rezervace potvrzena: místo č. ${created[0].spotCode}, ${created[0].dateLabel}, ${created[0].timeLabel}. Potvrzení jsme poslali na ${user.email}.`
-        : `Potvrzeno ${created.length} rezervací. Souhrn jsme poslali na ${user.email}.`,
+        ? `Rezervace potvrzena: místo č. ${created[0].spotCode}, ${created[0].dateLabel}, ${created[0].timeLabel}.${mailNote}`
+        : `Potvrzeno ${created.length} rezervací.${mailNote}`,
   };
 }
 

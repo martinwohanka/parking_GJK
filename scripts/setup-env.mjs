@@ -38,3 +38,26 @@ if (current && current !== PLACEHOLDER && current.length >= 16) {
   writeFileSync(ENV, updated, 'utf8');
   console.log('✔ Vygenerován nový SESSION_SECRET a zapsán do .env.');
 }
+
+// Bez adresy databáze nemá smysl pokračovat – Prisma by skončila
+// nesrozumitelnou chybou P1012 o chybějící proměnné DATABASE_URL.
+const database = /^DATABASE_URL\s*=\s*(.*)$/m.exec(readFileSync(ENV, 'utf8'));
+const databaseUrl = database ? database[1].trim().replace(/^["']|["']$/g, '') : '';
+
+if (!databaseUrl) {
+  console.error(
+    [
+      '',
+      '✖ V souboru .env chybí adresa databáze (DATABASE_URL).',
+      '',
+      '  1. Založte si bezplatnou databázi na https://neon.tech',
+      '  2. Zkopírujte "connection string" (začíná postgresql://…).',
+      '  3. Vložte ho v souboru .env na řádek DATABASE_URL="…".',
+      '  4. Spusťte znovu: npm run setup',
+      '',
+    ].join('\n'),
+  );
+  process.exit(1);
+}
+
+console.log('✔ Adresa databáze je vyplněná.');

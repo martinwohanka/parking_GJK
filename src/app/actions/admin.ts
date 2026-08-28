@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { getCurrentUser, hashPassword } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import {
+  isMailEnabled,
   penaltyConfirmedMail,
   reservationCancelledMail,
   reservationChangedMail,
@@ -124,7 +125,11 @@ export async function adminUpdateReservationAction(
   );
 
   revalidateAdmin();
-  return { success: 'Rezervace byla upravena a uživateli odeslán e-mail.' };
+  return {
+    success: isMailEnabled()
+      ? 'Rezervace byla upravena a uživateli odeslán e-mail.'
+      : 'Rezervace byla upravena. E-maily nejsou nastavené, uživatele informujte sám/sama.',
+  };
 }
 
 export async function adminCancelReservationAction(
@@ -166,7 +171,11 @@ export async function adminCancelReservationAction(
   );
 
   revalidateAdmin();
-  return { success: 'Rezervace byla zrušena a uživateli odeslán e-mail.' };
+  return {
+    success: isMailEnabled()
+      ? 'Rezervace byla zrušena a uživateli odeslán e-mail.'
+      : 'Rezervace byla zrušena. E-maily nejsou nastavené, uživatele informujte sám/sama.',
+  };
 }
 
 /** Vytvoření rezervace správcem jménem kantora (nečerpá tokeny). */
@@ -462,7 +471,9 @@ export async function adminResolvePenaltyAction(
     success:
       decision === 'CONFIRMED'
         ? targetUserId
-          ? 'Trestné body byly připsány a uživatel informován e-mailem.'
+          ? isMailEnabled()
+            ? 'Trestné body byly připsány a uživatel informován e-mailem.'
+            : 'Trestné body byly připsány. E-maily nejsou nastavené, uživatele informujte sám/sama.'
           : 'Nahlášení potvrzeno. SPZ zatím není přiřazena žádnému uživateli.'
         : 'Nahlášení bylo zamítnuto.',
   };

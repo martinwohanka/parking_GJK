@@ -5,6 +5,8 @@ na mobilu i na počítači (responzivní rozhraní, žádná instalace). Kantoř
 rezervují konkrétní časové sloty na konkrétním místě, správce rezervace edituje
 a řeší trestné body za špatné parkování.
 
+**Nasazení na internet:** postup krok za krokem najdete v [NASAZENI.md](NASAZENI.md).
+
 ## Co aplikace umí
 
 | Požadavek | Řešení |
@@ -62,9 +64,14 @@ a tím na jejího majitele v databázi.
 
 ## Spuštění na vlastním počítači (krok za krokem)
 
-Potřebujete jen **Node.js verze 22 nebo novější** – stáhnete na
+Potřebujete **Node.js verze 22 nebo novější** – stáhnete na
 <https://nodejs.org> (varianta LTS). Ověřte v terminálu příkazem `node -v`.
 Repozitář je veřejný, takže ke stažení není potřeba se nikam přihlašovat.
+
+Dále potřebujete **databázi PostgreSQL**. Nejrychleji ji získáte zdarma
+na <https://neon.tech> (registrace přes GitHub, do dvou minut máte
+připojovací řetězec). Pro vývoj si klidně založte druhý projekt, ať si
+nemícháte zkušební data s ostrým provozem.
 
 Příkazy zadávejte **po jednom** a počkejte, až každý doběhne:
 
@@ -78,10 +85,19 @@ cd parking_GJK
 # 3. nainstalovat závislosti (chvíli to trvá)
 npm install
 
-# 4. připravit konfiguraci, databázi a výchozí data
+# 4. připravit konfiguraci (vytvoří .env)
+npm run setup
+```
+
+Napoprvé skončí `npm run setup` hláškou, že v `.env` chybí `DATABASE_URL`.
+Vložte tam připojovací řetězec z Neonu a spusťte příkaz znovu – pak už
+založí tabulky i výchozí data:
+
+```bash
+# 5. znovu, už s vyplněnou databází
 npm run setup
 
-# 5. spustit
+# 6. spustit
 npm run dev
 ```
 
@@ -205,66 +221,39 @@ prázdné databáze, dostane roli správce automaticky.
 Bez vyplněného `SMTP_HOST` se e-maily neodesílají, ale vypisují do konzole a
 ukládají do složky `mail-outbox/` – vhodné pro vývoj a testování.
 
-## Přechod na PostgreSQL
-
-SQLite je jeden soubor na disku – bezvadné pro vyzkoušení, ale pro ostrý provoz
-s desítkami kantorů se nehodí (nezvládá souběžné zápisy a hůř se zálohuje).
-Přepnutí má tři kroky:
-
-1. **V `prisma/schema.prisma`** změňte v bloku `datasource db` jediný řádek:
-
-   ```prisma
-   datasource db {
-     provider = "postgresql"   // původně "sqlite"
-     url      = env("DATABASE_URL")
-   }
-   ```
-
-2. **V `.env`** nahraďte `DATABASE_URL` připojovacím řetězcem k databázi:
-
-   ```
-   DATABASE_URL="postgresql://uzivatel:heslo@server:5432/parkoviste?schema=public"
-   ```
-
-   Databázi buď provozuje školní IT, nebo ji zdarma získáte u poskytovatele
-   jako Neon či Supabase – tam dostanete řetězec hotový ke zkopírování.
-
-3. **Vytvořte tabulky a výchozí data:**
-
-   ```bash
-   npx prisma db push
-   npm run db:seed
-   ```
-
-Datový model je napsaný přenositelně, takže nic dalšího upravovat nemusíte.
-Data z SQLite se ale **nepřenesou automaticky** – pokud už v testovacím provozu
-máte rezervace, které chcete zachovat, řekněte si o export.
-
 ## Nasazení do produkce
 
-1. Přepněte na PostgreSQL podle návodu výše.
-2. Nastavte `SESSION_SECRET`, `APP_URL` (veřejná adresa) a SMTP pro e-maily.
-3. `npm ci && npm run build && npm start`
-   (při prvním nasazení nejdřív `npx prisma db push` a `npm run db:seed`).
-4. Aplikace musí běžet přes HTTPS – přihlašovací cookie se v produkci posílá
+Podrobný návod pro Vercel + Neon je v [NASAZENI.md](NASAZENI.md). Ve zkratce
+platí pro jakýkoli hosting:
+
+1. `DATABASE_URL` míří na produkční PostgreSQL.
+2. `SESSION_SECRET` je jiný než vývojový, `APP_URL` odpovídá veřejné adrese.
+3. Tabulky se založí příkazem `npx prisma db push`, výchozí data `npm run db:seed`.
+4. Build a start: `npm ci && npm run build && npm start`.
+5. Aplikace musí běžet přes HTTPS – přihlašovací cookie se v produkci posílá
    pouze zabezpečeně.
 
 ## Testy a kontroly
 
 ```bash
 npm run typecheck   # TypeScript
-npm test            # 29 testů business logiky nad dočasnou SQLite databází
+npm test            # 33 testů business logiky nad testovací databází
 npm run build       # produkční build
 ```
 
 Testy pokrývají práci s časem a přelomy dnů, normalizaci SPZ, slučování slotů,
 překryvy rezervací (včetně nočních přes půlnoc), limity na den, týdenní tokeny,
-trestné body a vykreslení mřížky.
+trestné body, omezení pokusů o přihlášení a vykreslení mřížky.
+
+Testy potřebují vlastní databázi, aby nesmazaly vývojová data. Adresu jim
+předáte proměnnou `TEST_DATABASE_URL`; bez ní míří na
+`postgresql://postgres@127.0.0.1:5432/parkoviste_test`.
 
 ## Struktura projektu
 
 ```
 prisma/schema.prisma      datový model (uživatel, SPZ, místo, rezervace, body, nastavení)
+NASAZENI.md               návod na vystavení aplikace na internet
 prisma/seed.ts            výchozí data – 10 míst podle plánku + účet správce
 src/lib/time.ts           datum/čas, sloty, kalendářní týdny (bez závislosti na časové zóně)
 src/lib/reservations.ts   kalendářní mřížka, validace a vytváření rezervací

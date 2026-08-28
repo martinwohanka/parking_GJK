@@ -11,6 +11,14 @@ export type MailMessage = {
 
 let cached: Transporter | null = null;
 
+/**
+ * Odesílá aplikace opravdu e-maily? Bez nastaveného SMTP serveru se zprávy
+ * jen zaznamenají – uživateli pak nesmíme tvrdit, že potvrzení dorazilo.
+ */
+export function isMailEnabled(): boolean {
+  return Boolean(process.env.SMTP_HOST);
+}
+
 function transporter(): Transporter | null {
   const host = process.env.SMTP_HOST;
   if (!host) return null;
@@ -36,6 +44,11 @@ export async function sendMail(message: MailMessage): Promise<void> {
   const tx = transporter();
 
   if (!tx) {
+    console.info(`[mail] SMTP není nastaven – zpráva pro ${message.to}: ${message.subject}`);
+    // Kopii ukládáme jen ve vývoji; hostingy typu Vercel mají souborový
+    // systém jen pro čtení a zápis by zbytečně selhával při každé zprávě.
+    if (process.env.NODE_ENV === 'production') return;
+
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
     const dir = path.join(process.cwd(), 'mail-outbox');
     const body = [
@@ -45,7 +58,6 @@ export async function sendMail(message: MailMessage): Promise<void> {
       '',
       message.text,
     ].join('\n');
-    console.info(`[mail] SMTP není nastaven – zpráva pro ${message.to}: ${message.subject}`);
     try {
       await fs.mkdir(dir, { recursive: true });
       await fs.writeFile(path.join(dir, `${stamp}-${sanitize(message.to)}.txt`), body, 'utf8');

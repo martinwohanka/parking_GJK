@@ -1,12 +1,12 @@
 // Rezervační systém parkoviště GJK
-// Pro produkci lze provider přepnout na "postgresql" (viz README).
+// Datový model běží na PostgreSQL – pro vývoj i pro produkci (viz README).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
