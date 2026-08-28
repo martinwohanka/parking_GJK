@@ -99,6 +99,31 @@ Aplikace běží na <http://localhost:3000>. Přihlaste se jako
 
 Zastavíte ji v terminálu klávesami `Ctrl+C`. Příště už stačí `npm run dev`.
 
+### Když něco nefunguje
+
+**`npm error … Could not read package.json`**
+Nejste ve složce projektu. Napište `cd parking_GJK` a příkaz zopakujte;
+`pwd` vypíše, kde právě jste.
+
+**„Databáze není připravená“ v prohlížeči**
+Neproběhl krok `npm run setup`. Zastavte aplikaci klávesami `Ctrl+C`, spusťte
+`npm run setup` a pak znovu `npm run dev`. Restart je nutný i tehdy, když jste
+setup spustili až po startu aplikace – běžící server se drží původního,
+prázdného souboru databáze.
+
+**„Něco se pokazilo“ s jinou hláškou**
+Rozbalte *Podrobnosti pro vývojáře* na chybové stránce, nebo se podívejte do
+terminálu, kde běží `npm run dev` – tam je vypsaná celá chyba i s odkazem na
+řádek v kódu.
+
+**Port 3000 je obsazený**
+Aplikace si sama vezme další volný port a vypíše ho v terminálu. Vlastní port
+zvolíte příkazem `PORT=3001 npm run dev`.
+
+**Chci začít úplně načisto**
+`npm run db:reset` smaže databázi a znovu ji naplní výchozími daty
+(10 míst a účet správce). Přijdete tím o všechny rezervace i registrace.
+
 ### Úpravy souboru `.env`
 
 `.env` je obyčejný textový soubor v kořeni projektu, řádek po řádku ve tvaru
