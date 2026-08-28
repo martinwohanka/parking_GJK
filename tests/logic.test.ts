@@ -12,6 +12,11 @@ import { createReservation, getSpotWeek, mergeSlots } from '@/lib/reservations';
 import { getQuota } from '@/lib/tokens';
 import { formatPlate, normalizePlate } from '@/lib/plates';
 import {
+  clearLoginAttempts,
+  loginLockMinutesLeft,
+  recordFailedLogin,
+} from '@/lib/rate-limit';
+import {
   absoluteMinute,
   addDays,
   diffDays,
@@ -31,6 +36,7 @@ function nextMonday(): string {
 const MONDAY = nextMonday();
 
 async function resetDb() {
+  await prisma.loginAttempt.deleteMany();
   await prisma.reservation.deleteMany();
   await prisma.penaltyReport.deleteMany();
   await prisma.tokenAdjustment.deleteMany();
@@ -390,4 +396,44 @@ test('víkendové řádky jsou uzavřené', async () => {
   const saturday = week!.days.find((d) => d.date === addDays(MONDAY, 5))!;
   assert.equal(saturday.isOpen, false);
   assert.ok(saturday.slots.every((s) => s.state === 'CLOSED'));
+});
+
+/* ------------------ omezení pokusů o přihlášení ------------------------- */
+
+test('deset neúspěšných pokusů účet dočasně uzamkne', async () => {
+  const email = 'ucitel@gjk.cz';
+  assert.equal(await loginLockMinutesLeft(email), 0);
+
+  for (let i = 0; i < 9; i += 1) await recordFailedLogin(email);
+  assert.equal(await loginLockMinutesLeft(email), 0, 'devět pokusů ještě nezamyká');
+
+  await recordFailedLogin(email);
+  const left = await loginLockMinutesLeft(email);
+  assert.ok(left > 0 && left <= 15, `zbývá ${left} min.`);
+});
+
+test('uzamčení se týká jen dotčeného e-mailu', async () => {
+  for (let i = 0; i < 10; i += 1) await recordFailedLogin('ucitel@gjk.cz');
+  assert.ok((await loginLockMinutesLeft('ucitel@gjk.cz')) > 0);
+  assert.equal(await loginLockMinutesLeft('druhy@gjk.cz'), 0);
+});
+
+test('úspěšné přihlášení počítadlo vynuluje', async () => {
+  const email = 'ucitel@gjk.cz';
+  for (let i = 0; i < 10; i += 1) await recordFailedLogin(email);
+  assert.ok((await loginLockMinutesLeft(email)) > 0);
+
+  await clearLoginAttempts(email);
+  assert.equal(await loginLockMinutesLeft(email), 0);
+});
+
+test('staré pokusy mimo časové okno se nepočítají', async () => {
+  const email = 'ucitel@gjk.cz';
+  await prisma.loginAttempt.createMany({
+    data: Array.from({ length: 12 }, () => ({
+      identifier: email,
+      createdAt: new Date(Date.now() - 30 * 60_000),
+    })),
+  });
+  assert.equal(await loginLockMinutesLeft(email), 0);
 });

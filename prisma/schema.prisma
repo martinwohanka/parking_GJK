@@ -188,3 +188,14 @@ model Settings {
 
   updatedAt DateTime @updatedAt
 }
+
+/// Neúspěšné pokusy o přihlášení. Slouží k omezení hádání hesel –
+/// po překročení limitu se účet na chvíli uzamkne.
+model LoginAttempt {
+  id         String   @id @default(cuid())
+  /// E-mail malými písmeny, na který pokus směřoval.
+  identifier String
+  createdAt  DateTime @default(now())
+
+  @@index([identifier, createdAt])
+}

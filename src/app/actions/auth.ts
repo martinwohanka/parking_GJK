@@ -10,6 +10,11 @@ import {
   verifyPassword,
 } from '@/lib/auth';
 import { sendMail, welcomeMail } from '@/lib/mail';
+import {
+  clearLoginAttempts,
+  loginLockMinutesLeft,
+  recordFailedLogin,
+} from '@/lib/rate-limit';
 import { formatPlate, isValidPlate, normalizePlate } from '@/lib/plates';
 
 export type FormState = {
@@ -127,10 +132,19 @@ export async function loginAction(
     };
   }
 
+  const lockedFor = await loginLockMinutesLeft(parsed.data.email);
+  if (lockedFor > 0) {
+    return {
+      error: `Příliš mnoho neúspěšných pokusů. Zkuste to znovu za ${lockedFor} min., nebo se obraťte na správce.`,
+      values: { email },
+    };
+  }
+
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   const ok = user ? verifyPassword(parsed.data.password, user.passwordHash) : false;
 
   if (!user || !ok) {
+    await recordFailedLogin(parsed.data.email);
     return { error: 'Nesprávný e-mail nebo heslo.', values: { email } };
   }
   if (!user.isActive) {
@@ -140,6 +154,7 @@ export async function loginAction(
     };
   }
 
+  await clearLoginAttempts(parsed.data.email);
   await createSession(user.id);
   redirect('/');
 }

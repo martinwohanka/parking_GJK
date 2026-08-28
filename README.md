@@ -12,6 +12,7 @@ a řeší trestné body za špatné parkování.
 | Přístup na mobilu i PC | Responzivní web (Next.js), stačí prohlížeč |
 | Registrace kantora včetně SPZ | `/registrace`, SPZ povinná, další vozidla lze přidat v profilu |
 | Registrace jen pro školní e-maily | Kontrola domény `@gjk.cz` (`ALLOWED_EMAIL_DOMAIN`), potvrzovací odkaz se nevyžaduje |
+| Ochrana proti hádání hesel | Po 10 neúspěšných pokusech se e-mail na 15 minut uzamkne |
 | Kalendář všedních dní × hodin 7–16 | Detail místa: řádky = dny, kostičky = hodinové sloty, zelená/červená |
 | U obsazených slotů jméno registrátora | Jméno je přímo v červené kostičce i v tooltipu |
 | Rezervace označením slotů + potvrzení | Kliknutím sloty zčervenají, tlačítko „Potvrdit rezervaci“ |
@@ -129,6 +130,14 @@ terminálu, kde běží `npm run dev` – tam je vypsaná celá chyba i s odkaze
 **Port 3000 je obsazený**
 Aplikace si sama vezme další volný port a vypíše ho v terminálu. Vlastní port
 zvolíte příkazem `PORT=3001 npm run dev`.
+
+**Po `git pull` aplikace hlásí chybu o chybějící tabulce**
+Změnil se datový model. Zastavte aplikaci (`Ctrl+C`), spusťte `npm run setup`
+a pak znovu `npm run dev` – běžící server si drží starou podobu databáze.
+
+**„Příliš mnoho neúspěšných pokusů“ při přihlášení**
+Ochrana proti hádání hesel: po 10 chybných pokusech se e-mail na 15 minut
+uzamkne. Buď počkejte, nebo správce nastaví nové heslo v *Správa → Uživatelé*.
 
 **Chci začít úplně načisto**
 `npm run db:reset` smaže databázi a znovu ji naplní výchozími daty
