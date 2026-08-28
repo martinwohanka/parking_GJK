@@ -87,11 +87,12 @@ export function SpotMap({
       <div className="mx-auto max-w-xl rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-3">
         {/* Užší levý sloupec = podélná stání u zdi, širší pravý = kolmá stání. */}
         <div className="grid grid-cols-[6rem_1fr] gap-3 sm:grid-cols-[8rem_1fr] sm:gap-5">
-          <div>
-            <p className="mb-2 rounded-md bg-slate-200 px-1 py-1 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide text-slate-600 sm:text-[11px]">
+          {/* Vlevo: nahoře vstup do budovy, dole výjezd z parkoviště. */}
+          <div className="flex h-full flex-col">
+            <p className="rounded-md bg-slate-200 px-1 py-1 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide text-slate-600 sm:text-[11px]">
               Vstup do budovy
             </p>
-            <div className="space-y-2">
+            <div className="mt-2 space-y-2">
               {left.map((spot) => (
                 <SpotTile
                   key={spot.spot.id}
@@ -101,6 +102,11 @@ export function SpotMap({
                 />
               ))}
             </div>
+            <p className="mt-auto pt-2">
+              <span className="block rounded-md bg-slate-300 px-1 py-1.5 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide text-slate-700 sm:text-[11px]">
+                Výjezd ↓
+              </span>
+            </p>
           </div>
 
           {/* Kolmá stání vyplní stejnou výšku jako podélná – plánek pak drží tvar plochy. */}
@@ -116,9 +122,6 @@ export function SpotMap({
           </div>
         </div>
 
-        <p className="mt-3 rounded-md bg-slate-300 px-2 py-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-700">
-          ↓ Výjezd z parkoviště ↓
-        </p>
       </div>
 
       <p className="mt-3 text-xs text-slate-500">
