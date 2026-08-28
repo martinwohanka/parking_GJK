@@ -11,9 +11,10 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma db push --force-reset && npm run db:seed",
-    "setup": "prisma generate && prisma db push && npm run db:seed",
+    "setup": "node scripts/setup-env.mjs && prisma generate && prisma db push && npm run db:seed",
     "test": "node scripts/test.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "env:secret": "node scripts/setup-env.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

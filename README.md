@@ -73,37 +73,52 @@ git checkout claude/parking-app-gymnasium-71p9ky
 # 2. nainstalovat závislosti
 npm install
 
-# 3. vytvořit konfiguraci z předlohy
-cp .env.example .env        # Windows PowerShell: copy .env.example .env
-
-# 4. vygenerovat tajný klíč a vepsat ho do .env jako SESSION_SECRET
-node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
-
-# 5. připravit databázi a výchozí data (10 míst + účet správce)
+# 3. připravit konfiguraci, databázi a výchozí data
 npm run setup
 
-# 6. spustit
+# 4. spustit
 npm run dev
 ```
+
+`npm run setup` sám vytvoří soubor `.env` z předlohy, vygeneruje do něj tajný
+klíč `SESSION_SECRET` a založí databázi s 10 parkovacími místy a účtem správce.
+Nic ručně vyplňovat nemusíte. Příkaz lze pustit opakovaně – vlastní hodnoty
+v `.env` nepřepisuje.
 
 Aplikace běží na <http://localhost:3000>. Přihlaste se jako
 `admin@gjk.cz` / `Parkoviste123` a **hned si změňte heslo** (viz níže).
 
 Zastavíte ji v terminálu klávesami `Ctrl+C`. Příště už stačí `npm run dev`.
 
+### Úpravy souboru `.env`
+
+`.env` je obyčejný textový soubor v kořeni projektu, řádek po řádku ve tvaru
+`NAZEV="hodnota"`. Otevřete ho v libovolném editoru (VS Code, Poznámkový blok,
+TextEdit) a upravenou hodnotu jen přepište mezi uvozovkami. Změny se projeví
+po restartu aplikace (`Ctrl+C` a znovu `npm run dev`).
+
+Soubor začíná tečkou, takže je ve Finderu i v Průzkumníku skrytý – v macOS ho
+zobrazíte zkratkou `Cmd+Shift+.`, ve Windows zaškrtnutím *Zobrazit → Skryté
+položky*. Nejjednodušší je otevřít celou složku projektu ve VS Code, kde je
+vidět běžně.
+
+Do gitu se `.env` nikdy nenahrává (je v `.gitignore`), takže do něj patří
+i hesla k SMTP nebo databázi.
+
 ### Tajný klíč `SESSION_SECRET`
 
 Slouží k podepisování přihlašovacích cookies – kdo ho zná, umí se vydávat za
-kohokoli, takže ho nikdy nesdílejte ani necommitujte (soubor `.env` je proto
-v `.gitignore`). Vygenerujete ho příkazem z kroku 4 a výsledek vložíte do `.env`:
+kohokoli, takže ho nikdy nesdílejte. Doplní se sám při `npm run setup`;
+vygenerovat nový můžete kdykoli příkazem:
 
-```
-SESSION_SECRET="sem vložte vygenerovaný řetězec"
+```bash
+npm run env:secret
 ```
 
-Pro vývoj stačí jakýkoli řetězec delší než 16 znaků; v produkci aplikace bez
-klíče vůbec nenastartuje. Změna klíče odhlásí všechny přihlášené uživatele –
-nic jiného se nestane.
+Chcete-li vlastní hodnotu, přepište v `.env` řádek
+`SESSION_SECRET="…"` – stačí libovolný náhodný řetězec delší než 16 znaků.
+V produkci aplikace bez klíče vůbec nenastartuje. Změna klíče odhlásí všechny
+přihlášené uživatele, nic jiného se nestane.
 
 ### Heslo správce
 
