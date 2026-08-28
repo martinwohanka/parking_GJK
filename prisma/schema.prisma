@@ -1,0 +1,190 @@
+// Rezervační systém parkoviště GJK
+// Pro produkci lze provider přepnout na "postgresql" (viz README).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Kantor / správce. Registrace je omezena na školní e-mailovou doménu.
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("TEACHER") // TEACHER | ADMIN
+  isActive     Boolean  @default(true)
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  plates              Plate[]
+  reservations        Reservation[]     @relation("ReservationOwner")
+  createdReservations Reservation[]     @relation("ReservationAuthor")
+  penaltiesReceived   PenaltyReport[]   @relation("PenaltyTarget")
+  penaltiesReported   PenaltyReport[]   @relation("PenaltyReporter")
+  penaltiesResolved   PenaltyReport[]   @relation("PenaltyResolver")
+  tokenAdjustments    TokenAdjustment[] @relation("TokenAdjustmentUser")
+
+  @@index([role])
+}
+
+/// SPZ přiřazená uživateli. Uživatel může mít více vozidel.
+model Plate {
+  id        String   @id @default(cuid())
+  /// Normalizovaný tvar (bez mezer, velkými písmeny) – slouží k vyhledávání.
+  plate     String   @unique
+  /// Tvar, jak jej zadal uživatel (např. "1AB 2345").
+  display   String
+  note      String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+/// Fyzické parkovací místo (viz plánek parkoviště).
+model ParkingSpot {
+  id        String   @id @default(cuid())
+  /// Číslo/označení místa na parkovišti, např. "1" … "10".
+  code      String   @unique
+  /// Sekce plánku – "LEFT" (u vstupu do budovy) nebo "RIGHT" (u zdi).
+  section   String   @default("RIGHT")
+  /// Pořadí v rámci sekce (pro vykreslení plánku).
+  position  Int      @default(0)
+  label     String?
+  note      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  reservations Reservation[]
+
+  @@index([isActive])
+}
+
+/// Rezervace jednoho místa na jeden den (případně přes noc do dalšího dne).
+///
+/// Čas je uložen jako počet minut od půlnoci dne `date`; u nočních rezervací
+/// může `endMinute` přesáhnout 1440 (tj. zasahuje do následujícího dne).
+/// Díky tomu je porovnávání překryvů čistě aritmetické a nezávislé na časové zóně.
+model Reservation {
+  id          String  @id @default(cuid())
+  /// Den rezervace ve tvaru YYYY-MM-DD (lokální čas Europe/Prague).
+  date        String
+  startMinute Int
+  endMinute   Int
+  /// RANGE = časový úsek, ALL_DAY = celý den, OVERNIGHT = přes noc
+  kind        String  @default("RANGE")
+  status      String  @default("ACTIVE") // ACTIVE | CANCELLED
+  note        String?
+  /// Kolik týdenních tokenů rezervace spotřebovala (0 = rezervace založená správcem).
+  tokenCost   Int     @default(1)
+
+  spotId String
+  spot   ParkingSpot @relation(fields: [spotId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation("ReservationOwner", fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Kdo rezervaci vytvořil (může být správce jménem kantora).
+  createdById String?
+  createdBy   User?   @relation("ReservationAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+
+  cancelledAt     DateTime?
+  cancelledReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date, status])
+  @@index([spotId, date])
+  @@index([userId, date])
+}
+
+/// Nahlášení špatného parkování na konkrétní SPZ.
+/// Nahlásit může kterýkoli přihlášený kantor, potvrzuje správce.
+model PenaltyReport {
+  id             String   @id @default(cuid())
+  plate          String // normalizovaná SPZ
+  plateInput     String // SPZ tak, jak byla zadána
+  points         Int      @default(1)
+  reason         String
+  occurredAt     DateTime @default(now())
+  status         String   @default("PENDING") // PENDING | CONFIRMED | REJECTED
+  resolutionNote String?
+
+  /// Uživatel, kterému SPZ patřila v okamžiku nahlášení (může být null).
+  targetUserId String?
+  targetUser   User?   @relation("PenaltyTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  reportedById String?
+  reportedBy   User?   @relation("PenaltyReporter", fields: [reportedById], references: [id], onDelete: SetNull)
+
+  resolvedById String?
+  resolvedBy   User?     @relation("PenaltyResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([plate])
+  @@index([status])
+  @@index([targetUserId])
+}
+
+/// Ruční úprava týdenního přídělu tokenů pro konkrétního uživatele
+/// (např. bonus za dozor, nebo trvalé snížení).
+model TokenAdjustment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("TokenAdjustmentUser", fields: [userId], references: [id], onDelete: Cascade)
+  /// Kladné i záporné číslo, přičítá se k základnímu týdennímu přídělu.
+  amount    Int
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+/// Globální nastavení aplikace (jediný řádek s id = 1).
+model Settings {
+  id Int @id @default(1)
+
+  /// Provozní doba parkoviště v minutách od půlnoci (7:00–16:00).
+  dayStartMinute Int    @default(420)
+  dayEndMinute   Int    @default(960)
+  /// Délka jednoho slotu v minutách.
+  slotMinutes    Int    @default(60)
+  /// Otevírací dny: 1 = pondělí … 7 = neděle.
+  openDays       String @default("1,2,3,4,5")
+
+  /// Kolik dní dopředu lze rezervovat.
+  maxAdvanceDays     Int @default(28)
+  /// Základní počet rezervací (tokenů) na kalendářní týden.
+  weeklyTokens       Int @default(5)
+  /// Maximální počet souběžně aktivních rezervací na jeden den.
+  maxPerDay          Int @default(1)
+  /// Minimální délka rezervace v minutách.
+  minDurationMinutes Int @default(60)
+
+  /// Umožnit rezervaci přes noc (od konce provozní doby do začátku další).
+  allowOvernight Boolean @default(true)
+  /// Umožnit volbu „celý den“.
+  allowAllDay    Boolean @default(true)
+
+  /// Za kolik trestných bodů se odebere jeden týdenní token.
+  pointsPerTokenLoss Int @default(3)
+  /// Od kolika trestných bodů je rezervace zcela zablokována.
+  blockAtPoints      Int @default(10)
+  /// Po kolika dnech trestné body „vyprší“ a přestanou se počítat.
+  penaltyDecayDays   Int @default(180)
+
+  /// Text zobrazený na hlavní stránce (pravidla parkoviště).
+  noticeText String?
+
+  updatedAt DateTime @updatedAt
+}
