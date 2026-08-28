@@ -63,22 +63,31 @@ a tím na jejího majitele v databázi.
 
 Potřebujete jen **Node.js verze 22 nebo novější** – stáhnete na
 <https://nodejs.org> (varianta LTS). Ověřte v terminálu příkazem `node -v`.
+Repozitář je veřejný, takže ke stažení není potřeba se nikam přihlašovat.
+
+Příkazy zadávejte **po jednom** a počkejte, až každý doběhne:
 
 ```bash
-# 1. stáhnout projekt
+# 1. stáhnout projekt do domovské složky
 git clone https://github.com/martinwohanka/parking_GJK
-cd parking_GJK
-git checkout claude/parking-app-gymnasium-71p9ky
 
-# 2. nainstalovat závislosti
+# 2. vstoupit do složky projektu – bez tohoto kroku npm nic nenajde
+cd parking_GJK
+
+# 3. nainstalovat závislosti (chvíli to trvá)
 npm install
 
-# 3. připravit konfiguraci, databázi a výchozí data
+# 4. připravit konfiguraci, databázi a výchozí data
 npm run setup
 
-# 4. spustit
+# 5. spustit
 npm run dev
 ```
+
+Všechny příkazy od kroku 3 dál musí běžet **uvnitř složky `parking_GJK`**.
+Poznáte to podle výzvy terminálu, která končí `parking_GJK %`. Když uvidíte
+chybu `Could not read package.json`, stojíte mimo složku – napište `cd
+parking_GJK` a zkuste to znovu. Kam jste se dostali, zjistíte příkazem `pwd`.
 
 `npm run setup` sám vytvoří soubor `.env` z předlohy, vygeneruje do něj tajný
 klíč `SESSION_SECRET` a založí databázi s 10 parkovacími místy a účtem správce.
