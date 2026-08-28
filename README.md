@@ -59,19 +59,69 @@ a tím na jejího majitele v databázi.
 - při `blockAtPoints` bodech (výchozí 10) se rezervace zcela zablokují,
 - body vyprší po `penaltyDecayDays` dnech (výchozí 180).
 
-## Spuštění lokálně
+## Spuštění na vlastním počítači (krok za krokem)
+
+Potřebujete jen **Node.js verze 22 nebo novější** – stáhnete na
+<https://nodejs.org> (varianta LTS). Ověřte v terminálu příkazem `node -v`.
 
 ```bash
+# 1. stáhnout projekt
+git clone https://github.com/martinwohanka/parking_GJK
+cd parking_GJK
+git checkout claude/parking-app-gymnasium-71p9ky
+
+# 2. nainstalovat závislosti
 npm install
-cp .env.example .env      # vyplňte SESSION_SECRET a případně SMTP
-npm run setup             # prisma generate + db push + seed (10 míst, admin)
-npm run dev               # http://localhost:3000
+
+# 3. vytvořit konfiguraci z předlohy
+cp .env.example .env        # Windows PowerShell: copy .env.example .env
+
+# 4. vygenerovat tajný klíč a vepsat ho do .env jako SESSION_SECRET
+node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
+
+# 5. připravit databázi a výchozí data (10 míst + účet správce)
+npm run setup
+
+# 6. spustit
+npm run dev
 ```
 
-Výchozí správce vzniká při seedu z proměnných `ADMIN_EMAIL` / `ADMIN_PASSWORD`
-(výchozí `admin@gjk.cz` / `Parkoviste123`) – **heslo po prvním přihlášení
-změňte**. První uživatel, který se zaregistruje do prázdné databáze, dostane
-roli správce automaticky.
+Aplikace běží na <http://localhost:3000>. Přihlaste se jako
+`admin@gjk.cz` / `Parkoviste123` a **hned si změňte heslo** (viz níže).
+
+Zastavíte ji v terminálu klávesami `Ctrl+C`. Příště už stačí `npm run dev`.
+
+### Tajný klíč `SESSION_SECRET`
+
+Slouží k podepisování přihlašovacích cookies – kdo ho zná, umí se vydávat za
+kohokoli, takže ho nikdy nesdílejte ani necommitujte (soubor `.env` je proto
+v `.gitignore`). Vygenerujete ho příkazem z kroku 4 a výsledek vložíte do `.env`:
+
+```
+SESSION_SECRET="sem vložte vygenerovaný řetězec"
+```
+
+Pro vývoj stačí jakýkoli řetězec delší než 16 znaků; v produkci aplikace bez
+klíče vůbec nenastartuje. Změna klíče odhlásí všechny přihlášené uživatele –
+nic jiného se nestane.
+
+### Heslo správce
+
+Výchozí správce vzniká při `npm run setup` z proměnných `ADMIN_EMAIL` /
+`ADMIN_PASSWORD` v `.env` (výchozí `admin@gjk.cz` / `Parkoviste123`).
+Heslo změníte kterýmkoli z těchto způsobů:
+
+1. **Ještě před prvním spuštěním** – v `.env` přepište `ADMIN_PASSWORD`
+   (a případně `ADMIN_EMAIL`) a teprve pak spusťte `npm run setup`.
+2. **V aplikaci** (doporučeno) – přihlaste se a v *Můj profil → Změna hesla*
+   zadejte současné a dvakrát nové heslo.
+3. **Jinému uživateli** – v *Správa → Uživatelé* otevřete u kantora **Detail**
+   a v poli *Nastavit heslo* zadejte nové. Heslo mu předejte bezpečnou cestou,
+   ať si ho sám změní.
+
+Pozor: úprava `ADMIN_PASSWORD` v `.env` **po** seedu už na existující účet
+nemá vliv – heslo je v databázi. První uživatel, který se zaregistruje do
+prázdné databáze, dostane roli správce automaticky.
 
 ## Konfigurace (`.env`)
 
@@ -87,14 +137,47 @@ roli správce automaticky.
 Bez vyplněného `SMTP_HOST` se e-maily neodesílají, ale vypisují do konzole a
 ukládají do složky `mail-outbox/` – vhodné pro vývoj a testování.
 
+## Přechod na PostgreSQL
+
+SQLite je jeden soubor na disku – bezvadné pro vyzkoušení, ale pro ostrý provoz
+s desítkami kantorů se nehodí (nezvládá souběžné zápisy a hůř se zálohuje).
+Přepnutí má tři kroky:
+
+1. **V `prisma/schema.prisma`** změňte v bloku `datasource db` jediný řádek:
+
+   ```prisma
+   datasource db {
+     provider = "postgresql"   // původně "sqlite"
+     url      = env("DATABASE_URL")
+   }
+   ```
+
+2. **V `.env`** nahraďte `DATABASE_URL` připojovacím řetězcem k databázi:
+
+   ```
+   DATABASE_URL="postgresql://uzivatel:heslo@server:5432/parkoviste?schema=public"
+   ```
+
+   Databázi buď provozuje školní IT, nebo ji zdarma získáte u poskytovatele
+   jako Neon či Supabase – tam dostanete řetězec hotový ke zkopírování.
+
+3. **Vytvořte tabulky a výchozí data:**
+
+   ```bash
+   npx prisma db push
+   npm run db:seed
+   ```
+
+Datový model je napsaný přenositelně, takže nic dalšího upravovat nemusíte.
+Data z SQLite se ale **nepřenesou automaticky** – pokud už v testovacím provozu
+máte rezervace, které chcete zachovat, řekněte si o export.
+
 ## Nasazení do produkce
 
-1. V `prisma/schema.prisma` přepněte `provider` na `"postgresql"` a nastavte
-   `DATABASE_URL` na produkční databázi (SQLite se pro víc současných uživatelů
-   nehodí).
-2. Nastavte `SESSION_SECRET` (`openssl rand -base64 48`), `APP_URL` a SMTP.
-3. `npm ci && npx prisma migrate deploy && npm run build && npm start`
-   (při prvním nasazení `npx prisma db push` a `npm run db:seed`).
+1. Přepněte na PostgreSQL podle návodu výše.
+2. Nastavte `SESSION_SECRET`, `APP_URL` (veřejná adresa) a SMTP pro e-maily.
+3. `npm ci && npm run build && npm start`
+   (při prvním nasazení nejdřív `npx prisma db push` a `npm run db:seed`).
 4. Aplikace musí běžet přes HTTPS – přihlašovací cookie se v produkci posílá
    pouze zabezpečeně.
 

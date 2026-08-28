@@ -37,6 +37,7 @@ export function ReportForm() {
             name="plate"
             required
             placeholder="1AB 2345"
+            defaultValue={state.values?.plate ?? ''}
             className="field uppercase font-mono"
           />
         </div>
@@ -44,7 +45,13 @@ export function ReportForm() {
           <label className="label" htmlFor="occurredAt">
             Kdy k tomu došlo
           </label>
-          <input id="occurredAt" name="occurredAt" type="datetime-local" className="field" />
+          <input
+            id="occurredAt"
+            name="occurredAt"
+            type="datetime-local"
+            defaultValue={state.values?.occurredAt ?? ''}
+            className="field"
+          />
         </div>
       </div>
 
@@ -59,6 +66,7 @@ export function ReportForm() {
           rows={3}
           maxLength={500}
           placeholder="např. vozidlo zabírá dvě místa / stojí na místě č. 4 bez rezervace / blokuje výjezd"
+          defaultValue={state.values?.reason ?? ''}
           className="field"
         />
       </div>

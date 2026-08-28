@@ -18,7 +18,14 @@ export function RegisterForm({ domain }: { domain: string }) {
         <label className="label" htmlFor="name">
           Jméno a příjmení
         </label>
-        <input id="name" name="name" required autoComplete="name" className="field" />
+        <input
+          id="name"
+          name="name"
+          required
+          autoComplete="name"
+          defaultValue={state.values?.name ?? ''}
+          className="field"
+        />
       </div>
 
       <div>
@@ -32,6 +39,7 @@ export function RegisterForm({ domain }: { domain: string }) {
           required
           autoComplete="username"
           placeholder={`jmeno@${domain}`}
+          defaultValue={state.values?.email ?? ''}
           className="field"
         />
         <p className="hint">Registrace je povolena pouze pro adresy @{domain}.</p>
@@ -46,6 +54,7 @@ export function RegisterForm({ domain }: { domain: string }) {
           name="plate"
           required
           placeholder="1AB 2345"
+          defaultValue={state.values?.plate ?? ''}
           className="field uppercase"
         />
         <p className="hint">Další vozidla lze přidat později v profilu.</p>
@@ -55,7 +64,14 @@ export function RegisterForm({ domain }: { domain: string }) {
         <label className="label" htmlFor="phone">
           Telefon <span className="font-normal text-slate-400">(nepovinné)</span>
         </label>
-        <input id="phone" name="phone" type="tel" autoComplete="tel" className="field" />
+        <input
+          id="phone"
+          name="phone"
+          type="tel"
+          autoComplete="tel"
+          defaultValue={state.values?.phone ?? ''}
+          className="field"
+        />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

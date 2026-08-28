@@ -12,7 +12,16 @@ import {
 import { sendMail, welcomeMail } from '@/lib/mail';
 import { formatPlate, isValidPlate, normalizePlate } from '@/lib/plates';
 
-export type FormState = { error?: string; success?: string };
+export type FormState = {
+  error?: string;
+  success?: string;
+  /**
+   * Vyplněné hodnoty vrácené zpět do formuláře. React po odeslání formuláře
+   * resetuje needitované položky na výchozí hodnoty, takže bez tohoto pole
+   * by uživatel po chybě musel všechno vypsat znovu. Hesla se nevracejí.
+   */
+  values?: { name?: string; email?: string; plate?: string; phone?: string };
+};
 
 function allowedDomain(): string {
   return (process.env.ALLOWED_EMAIL_DOMAIN ?? 'gjk.cz').toLowerCase();
@@ -45,18 +54,26 @@ export async function registerAction(
     passwordConfirm: formData.get('passwordConfirm'),
   });
 
+  const submitted = {
+    name: String(formData.get('name') ?? ''),
+    email: String(formData.get('email') ?? '').trim().toLowerCase(),
+    plate: String(formData.get('plate') ?? ''),
+    phone: String(formData.get('phone') ?? ''),
+  };
+  const fail = (error: string): FormState => ({ error, values: submitted });
+
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? 'Zkontrolujte zadané údaje.' };
+    return fail(parsed.error.issues[0]?.message ?? 'Zkontrolujte zadané údaje.');
   }
   const data = parsed.data;
 
   const domain = allowedDomain();
   if (!data.email.endsWith(`@${domain}`)) {
-    return { error: `Registrace je možná pouze se školním e-mailem @${domain}.` };
+    return fail(`Registrace je možná pouze se školním e-mailem @${domain}.`);
   }
 
   if (!isValidPlate(data.plate)) {
-    return { error: 'SPZ musí mít 5–10 znaků (písmena a číslice).' };
+    return fail('SPZ musí mít 5–10 znaků (písmena a číslice).');
   }
   const plate = normalizePlate(data.plate);
 
@@ -65,10 +82,10 @@ export async function registerAction(
     prisma.plate.findUnique({ where: { plate }, select: { id: true } }),
   ]);
   if (existingUser) {
-    return { error: 'Uživatel s tímto e-mailem je již zaregistrovaný.' };
+    return fail('Uživatel s tímto e-mailem je již zaregistrovaný.');
   }
   if (existingPlate) {
-    return { error: 'Tato SPZ je již evidovaná u jiného uživatele.' };
+    return fail('Tato SPZ je již evidovaná u jiného uživatele.');
   }
 
   const isFirstUser = (await prisma.user.count()) === 0;
@@ -102,18 +119,25 @@ export async function loginAction(
     email: formData.get('email'),
     password: formData.get('password'),
   });
+  const email = String(formData.get('email') ?? '').trim().toLowerCase();
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? 'Zkontrolujte zadané údaje.' };
+    return {
+      error: parsed.error.issues[0]?.message ?? 'Zkontrolujte zadané údaje.',
+      values: { email },
+    };
   }
 
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   const ok = user ? verifyPassword(parsed.data.password, user.passwordHash) : false;
 
   if (!user || !ok) {
-    return { error: 'Nesprávný e-mail nebo heslo.' };
+    return { error: 'Nesprávný e-mail nebo heslo.', values: { email } };
   }
   if (!user.isActive) {
-    return { error: 'Účet je deaktivovaný. Obraťte se na správce parkoviště.' };
+    return {
+      error: 'Účet je deaktivovaný. Obraťte se na správce parkoviště.',
+      values: { email },
+    };
   }
 
   await createSession(user.id);

@@ -12,8 +12,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma db push --force-reset && npm run db:seed",
     "setup": "prisma generate && prisma db push && npm run db:seed",
-    "test": "npm run test:setup && DATABASE_URL=file:./test.db tsx --test tests/*.test.ts",
-    "test:setup": "DATABASE_URL=file:./test.db prisma db push --skip-generate --accept-data-loss",
+    "test": "node scripts/test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "prisma": {

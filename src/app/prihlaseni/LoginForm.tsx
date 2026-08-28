@@ -25,6 +25,7 @@ export function LoginForm() {
           autoComplete="username"
           required
           placeholder="jmeno@gjk.cz"
+          defaultValue={state.values?.email ?? ''}
           className="field"
         />
       </div>

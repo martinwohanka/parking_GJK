@@ -6,7 +6,12 @@ import { getCurrentUser } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { formatPlate, isValidPlate, normalizePlate } from '@/lib/plates';
 
-export type PenaltyFormState = { error?: string; success?: string };
+export type PenaltyFormState = {
+  error?: string;
+  success?: string;
+  /** Vyplněné hodnoty vrácené do formuláře, aby se po chybě nemazaly. */
+  values?: { plate?: string; reason?: string; occurredAt?: string };
+};
 
 const reportSchema = z.object({
   plate: z.string().trim().min(1, 'Zadejte SPZ špatně zaparkovaného vozidla.'),
@@ -30,11 +35,18 @@ export async function reportBadParkingAction(
     reason: formData.get('reason'),
     occurredAt: formData.get('occurredAt') ?? undefined,
   });
+  const submitted = {
+    plate: String(formData.get('plate') ?? ''),
+    reason: String(formData.get('reason') ?? ''),
+    occurredAt: String(formData.get('occurredAt') ?? ''),
+  };
+  const fail = (error: string): PenaltyFormState => ({ error, values: submitted });
+
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? 'Zkontrolujte zadané údaje.' };
+    return fail(parsed.error.issues[0]?.message ?? 'Zkontrolujte zadané údaje.');
   }
   if (!isValidPlate(parsed.data.plate)) {
-    return { error: 'SPZ musí mít 5–10 znaků (písmena a číslice).' };
+    return fail('SPZ musí mít 5–10 znaků (písmena a číslice).');
   }
 
   const plate = normalizePlate(parsed.data.plate);
@@ -44,7 +56,7 @@ export async function reportBadParkingAction(
   });
 
   if (owner?.userId === user.id) {
-    return { error: 'Nelze nahlásit vlastní vozidlo.' };
+    return fail('Nelze nahlásit vlastní vozidlo.');
   }
 
   let occurredAt = new Date();
@@ -65,7 +77,7 @@ export async function reportBadParkingAction(
     select: { id: true },
   });
   if (recent) {
-    return { error: 'Toto vozidlo jste už nahlásili během posledních 12 hodin.' };
+    return fail('Toto vozidlo jste už nahlásili během posledních 12 hodin.');
   }
 
   await prisma.penaltyReport.create({
