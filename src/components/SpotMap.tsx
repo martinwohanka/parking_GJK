@@ -10,21 +10,38 @@ function tone(spot: SpotOverview) {
   return 'border-emerald-300 bg-emerald-100 text-emerald-900 hover:bg-emerald-200';
 }
 
-function SpotTile({ spot, weekStart }: { spot: SpotOverview; weekStart: string }) {
+function statusLabel(spot: SpotOverview): string {
+  if (!spot.spot.isActive) return 'mimo provoz';
+  if (spot.totalSlotsTotal === 0) return 'týden proběhl';
+  return `${spot.freeSlotsTotal} volných h`;
+}
+
+/**
+ * Dlaždice jednoho místa.
+ *
+ * `orientation` odpovídá skutečnému stání vozu na parkovišti:
+ *  - 'portrait'  = vůz stojí podélně u zdi (místa u budovy),
+ *  - 'landscape' = vůz zaparkuje kolmo (řada míst naproti).
+ */
+function SpotTile({
+  spot,
+  weekStart,
+  orientation,
+}: {
+  spot: SpotOverview;
+  weekStart: string;
+  orientation: 'portrait' | 'landscape';
+}) {
   return (
     <Link
       href={`/misto/${encodeURIComponent(spot.spot.code)}?tyden=${weekStart}`}
-      className={`flex flex-col items-center justify-center rounded-lg border-2 px-2 py-3 text-center transition ${tone(spot)}`}
+      className={`flex flex-col items-center justify-center rounded-lg border-2 px-2 text-center transition ${
+        orientation === 'portrait' ? 'min-h-[9.5rem] py-4' : 'min-h-[3.5rem] flex-1 py-2'
+      } ${tone(spot)}`}
       title={spot.spot.label ?? `Místo ${spot.spot.code}`}
     >
       <span className="text-lg font-bold leading-none">{spot.spot.code}</span>
-      <span className="mt-1 text-[11px] leading-tight">
-        {!spot.spot.isActive
-          ? 'mimo provoz'
-          : spot.totalSlotsTotal === 0
-            ? 'týden proběhl'
-            : `${spot.freeSlotsTotal} volných h`}
-      </span>
+      <span className="mt-1 text-[11px] leading-tight">{statusLabel(spot)}</span>
       {spot.days.some((d) => d.hasMine) && (
         <span className="mt-1 rounded bg-brand-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
           moje
@@ -35,8 +52,8 @@ function SpotTile({ spot, weekStart }: { spot: SpotOverview; weekStart: string }
 }
 
 /**
- * Plánek parkoviště podle náčrtu: vlevo místa u vstupu do budovy,
- * vpravo řada míst podél zdi, dole výjezd.
+ * Plánek parkoviště podle skutečného rozmístění: vlevo podélná stání u budovy
+ * (místa 8–10), vpravo kolmá stání (místa 1–7), výjezd dole přes celou šířku.
  */
 export function SpotMap({
   spots,
@@ -67,38 +84,46 @@ export function SpotMap({
         </div>
       </div>
 
-      <div className="rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-3">
-        <div className="grid grid-cols-2 gap-3 sm:gap-6">
+      <div className="mx-auto max-w-xl rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-3">
+        {/* Užší levý sloupec = podélná stání u zdi, širší pravý = kolmá stání. */}
+        <div className="grid grid-cols-[6rem_1fr] gap-3 sm:grid-cols-[8rem_1fr] sm:gap-5">
           <div>
-            <p className="mb-2 rounded-md bg-slate-200 px-2 py-1 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+            <p className="mb-2 rounded-md bg-slate-200 px-1 py-1 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide text-slate-600 sm:text-[11px]">
               Vstup do budovy
             </p>
             <div className="space-y-2">
               {left.map((spot) => (
-                <SpotTile key={spot.spot.id} spot={spot} weekStart={weekStart} />
+                <SpotTile
+                  key={spot.spot.id}
+                  spot={spot}
+                  weekStart={weekStart}
+                  orientation="portrait"
+                />
               ))}
             </div>
-            <p className="mt-2 rounded-md bg-slate-200 px-2 py-1 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-600">
-              Výjezd
-            </p>
           </div>
 
-          <div>
-            <p className="mb-2 px-2 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-              Podél zdi
-            </p>
-            <div className="space-y-2">
-              {right.map((spot) => (
-                <SpotTile key={spot.spot.id} spot={spot} weekStart={weekStart} />
-              ))}
-            </div>
+          {/* Kolmá stání vyplní stejnou výšku jako podélná – plánek pak drží tvar plochy. */}
+          <div className="flex h-full flex-col gap-2">
+            {right.map((spot) => (
+              <SpotTile
+                key={spot.spot.id}
+                spot={spot}
+                weekStart={weekStart}
+                orientation="landscape"
+              />
+            ))}
           </div>
         </div>
+
+        <p className="mt-3 rounded-md bg-slate-300 px-2 py-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-700">
+          ↓ Výjezd z parkoviště ↓
+        </p>
       </div>
 
       <p className="mt-3 text-xs text-slate-500">
-        Počet volných hodin je uveden za zbývající část zobrazeného týdne. Kliknutím na místo se otevře
-        detailní kalendář, kde lze rezervovat konkrétní časové sloty.
+        Počet volných hodin je uveden za zbývající část zobrazeného týdne. Kliknutím na místo se
+        otevře detailní kalendář, kde lze rezervovat konkrétní časové sloty.
       </p>
     </div>
   );
