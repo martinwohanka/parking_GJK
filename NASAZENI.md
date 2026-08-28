@@ -37,11 +37,19 @@ Co kde běží:
 
 Tohle se dělá jednou, z vašeho počítače, ve složce projektu:
 
-1. Otevřete soubor `.env` a na řádek `DATABASE_URL` vložte **direct**
-   connection string z Neonu:
+1. Otevřete soubor `.env`. Leží přímo ve složce projektu (u vás
+   `/Users/vase-jmeno/parking_GJK/.env`) a vytvořil ho `npm run setup`.
+   Ve Finderu je skrytý, protože začíná tečkou – nejrychleji ho otevřete
+   z terminálu ve složce projektu:
+   ```bash
+   open -e .env
+   ```
+   Na řádek `DATABASE_URL` vložte **direct** connection string z Neonu
+   (uvozovky nechte):
    ```
    DATABASE_URL="postgresql://…neon.tech/neondb?sslmode=require"
    ```
+   Uložte (`Cmd+S`) a zavřete.
 2. Nastavte si rovnou heslo správce (ať nemusíte měnit výchozí):
    ```
    ADMIN_EMAIL="vase.jmeno@gjk.cz"

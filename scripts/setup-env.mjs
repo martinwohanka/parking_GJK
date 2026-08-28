@@ -9,6 +9,7 @@
  */
 import { randomBytes } from 'node:crypto';
 import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 const ENV = '.env';
 const EXAMPLE = '.env.example';
@@ -44,15 +45,33 @@ if (current && current !== PLACEHOLDER && current.length >= 16) {
 const database = /^DATABASE_URL\s*=\s*(.*)$/m.exec(readFileSync(ENV, 'utf8'));
 const databaseUrl = database ? database[1].trim().replace(/^["']|["']$/g, '') : '';
 
-if (!databaseUrl) {
+const isPostgres = /^postgres(ql)?:\/\//.test(databaseUrl);
+
+if (!databaseUrl || !isPostgres) {
+  const problem = databaseUrl
+    ? `✖ DATABASE_URL v souboru .env nevede na PostgreSQL (je tam „${databaseUrl}“).`
+    : '✖ V souboru .env chybí adresa databáze (DATABASE_URL).';
+  const legacy = databaseUrl.startsWith('file:')
+    ? [
+        '',
+        '  Vypadá to na starší nastavení se SQLite. Aplikace od té doby',
+        '  přešla na PostgreSQL, protože SQLite se nedá provozovat na',
+        '  hostingu typu Vercel.',
+      ]
+    : [];
+
   console.error(
     [
       '',
-      '✖ V souboru .env chybí adresa databáze (DATABASE_URL).',
+      problem,
+      ...legacy,
       '',
       '  1. Založte si bezplatnou databázi na https://neon.tech',
       '  2. Zkopírujte "connection string" (začíná postgresql://…).',
-      '  3. Vložte ho v souboru .env na řádek DATABASE_URL="…".',
+      `  3. Vložte ho v souboru ${resolve(ENV)}`,
+      '     na řádek DATABASE_URL="…". Soubor otevřete příkazem:',
+      '        open -e .env        (macOS)',
+      '        notepad .env        (Windows)',
       '  4. Spusťte znovu: npm run setup',
       '',
     ].join('\n'),

@@ -90,8 +90,9 @@ npm run setup
 ```
 
 Napoprvé skončí `npm run setup` hláškou, že v `.env` chybí `DATABASE_URL`.
-Vložte tam připojovací řetězec z Neonu a spusťte příkaz znovu – pak už
-založí tabulky i výchozí data:
+Soubor `.env` leží ve složce projektu; otevřete ho příkazem `open -e .env`
+(macOS) nebo `notepad .env` (Windows), vložte připojovací řetězec z Neonu
+a spusťte příkaz znovu – pak už založí tabulky i výchozí data:
 
 ```bash
 # 5. znovu, už s vyplněnou databází
