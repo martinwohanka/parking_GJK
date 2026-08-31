@@ -580,7 +580,9 @@ const API = {
     const { data, error } = await sb.from('park_reservations')
       .select('id,spot_id,user_id,period,is_overnight')
       .eq('user_id', S.me.id)
-      .filter('period','sr',`[${new Date().toISOString()},infinity)`)
+      // 'ov' = rozsahy se překrývají. Původní 'sr' ("zcela napravo od")
+      // proti rozsahu do nekonečna nevrátí nikdy nic — seznam byl vždy prázdný.
+      .filter('period','ov',`[${new Date().toISOString()},infinity)`)
       .limit(200);
     if (error) throw error;
     return data.map(r=>{const [s,e]=parseRange(r.period);return {...r,start:s,end:e};})
@@ -655,7 +657,7 @@ const API = {
       .sort((a,b)=>a.start.localeCompare(b.start)).map(r=>({...r}));
     const { data, error } = await sb.from('park_reservations')
       .select('id,spot_id,user_id,period,is_overnight')
-      .filter('period','sr',`[${new Date().toISOString()},infinity)`).limit(300);
+      .filter('period','ov',`[${new Date().toISOString()},infinity)`).limit(300);
     if (error) throw error;
     return data.map(r=>{const [s,e]=parseRange(r.period);return {...r,start:s,end:e};})
       .sort((a,b)=>a.start.localeCompare(b.start));
