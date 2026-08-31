@@ -243,8 +243,19 @@ Všechno se dá měnit ve Správě, tohle jsou výchozí hodnoty:
 | Body za den limitu | 5 | Každých 5 trestných bodů ubere jeden rezervovatelný den v týdnu. |
 | Úplné zablokování | 20 bodů | Nad tuto hranici uživatel nemůže rezervovat vůbec. |
 
-Limit se počítá od pondělí a jen za pracovní dny. Kontrola běží v databázi
-(trigger `park_check_reservation`), ne v prohlížeči — obejít se nedá.
+Limit se počítá od pondělí a jen za pracovní dny. Rozhoduje **den začátku**
+rezervace: kdo si vezme jedno místo od 7 do 16 hodin a k tomu ještě jinou
+hodinu jinde téhož dne, spálí pořád jen jeden den z limitu.
+
+Kontrola běží v databázi (trigger `park_check_reservation`), ne v prohlížeči —
+kantor ji obejít nemůže.
+
+**Na správce se ale nevztahuje.** Trigger mu propouští všechno: týdenní limit,
+zákaz víkendů, rezervace do minulosti i místa vyřazená z provozu. Aplikace mu
+proto nic neodpočítává a píše „bez limitu“. Praktický důsledek: správce si
+omylem může založit rezervaci na sobotu nebo na loňský týden a nic ho
+nezastaví. Kdyby měl limit platit i pro správce, stačí v `schema.sql` v
+triggeru `park_check_reservation` zrušit podmínku `if v_is_admin ...`.
 
 ## Trestné body
 

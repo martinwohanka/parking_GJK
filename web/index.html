@@ -396,6 +396,18 @@ const dayEnd   = ()=> Number(setting('day_end_hour',16));
 const hours    = ()=>{ const a=[]; for(let h=dayStart();h<dayEnd();h++) a.push(h); return a; };
 const isAdmin  = ()=> S.me?.role==='admin';
 
+/**
+ * Týdenní limit se v databázi (trigger park_check_reservation) na správce
+ * nevztahuje – může rezervovat neomezeně. Aplikace mu proto nesmí nic
+ * odpočítávat, jinak by ukazovala číslo, které nic neznamená.
+ */
+function hasNoLimit(u=S.me){ return u?.role === 'admin'; }
+
+/** „1 den“, „3 dny“, „5 dnů“ – nominativ. */
+const dnyNom = n => `${n} ${n===1?'den':n<5?'dny':'dnů'}`;
+/** „z 1 dne“, „z 3 dnů“ – genitiv. */
+const dnyGen = n => `${n} ${n===1?'dne':'dnů'}`;
+
 function effectiveLimit(u=S.me){
   const base = Number(setting('weekly_day_limit',3));
   const per  = Number(setting('penalty_points_per_slot',5))||5;
@@ -928,8 +940,9 @@ function viewLot(){
   const used = S.reservations.filter(r=>r.user_id===S.me.id)
     .reduce((s,r)=>s.add(ymd(new Date(r.start))), new Set()).size;
   const lim  = effectiveLimit();
-  const pips = el('div',{class:'pips'}, Array.from({length:Math.max(lim,used)},(_,i)=>
-    el('span',{class:'pip'+(i<used?' used':'')})));
+  const pips = hasNoLimit() ? null
+    : el('div',{class:'pips'}, Array.from({length:Math.max(lim,used)},(_,i)=>
+        el('span',{class:'pip'+(i<used?' used':'')})));
 
   wrap.append(el('div',{class:'weekbar'},
     el('div',{class:'nav'},
@@ -938,16 +951,20 @@ function viewLot(){
     el('div',{class:'label'}, weekLabel()),
     !sameWeek(S.week,new Date()) && el('button',{class:'btn sm ghost',
       onclick:async()=>{S.week=mondayOf(new Date());await refreshWeek();render();}},'Dnes'),
-    el('div',{class:'tokens'}, pips, el('span',{class:'muted'}, `${Math.max(lim-used,0)} z ${lim} dnů volných`))
+    el('div',{class:'tokens'}, pips, el('span',{class:'muted'}, hasNoLimit()
+      ? (used ? `Rezervováno ${dnyNom(used)} · bez limitu` : 'Bez týdenního limitu')
+      : `Volné dny: ${Math.max(lim-used,0)} z ${lim}`))
   ));
 
   if (S.me.penalty_points > 0){
     const block = Number(setting('penalty_block_threshold',20));
     wrap.append(el('div',{class:'banner'},
       `Máte ${S.me.penalty_points} trestných bodů. `
-      + (S.me.penalty_points>=block
-          ? 'Rezervace jsou pozastaveny — ozvěte se správci.'
-          : `Týdenní limit se vám tím snížil na ${lim} ${lim===1?'den':lim<5?'dny':'dnů'}.`)));
+      + (hasNoLimit()
+          ? 'Na správce se omezení rezervací nevztahuje.'
+          : S.me.penalty_points>=block
+            ? 'Rezervace jsou pozastaveny — ozvěte se správci.'
+            : `Týdenní limit se vám tím snížil na ${dnyNom(lim)}.`)));
   }
 
   const left  = S.spots.filter(s=>s.zone==='levý pruh');
@@ -1118,7 +1135,9 @@ function renderSheet(){
           el('span',{},'Vlastní rezervaci zrušíte kliknutím na modré políčko.'))),
       el('div',{class:'sheet-foot'},
         el('div',{class:'small'}, n ? `Vybráno ${n} ${n===1?'slot':n<5?'sloty':'slotů'}` : 'Nic nevybráno',
-          el('div',{class:'muted'}, `Zbývá ${Math.max(effectiveLimit()-daysUsedThisWeek(),0)} z ${effectiveLimit()} dnů`)),
+          el('div',{class:'muted'}, hasNoLimit()
+            ? 'Na správce se týdenní limit nevztahuje.'
+            : `Zbývá ${Math.max(effectiveLimit()-daysUsedThisWeek(),0)} z ${dnyGen(effectiveLimit())}`)),
         el('div',{style:'flex:1'}),
         n ? el('button',{class:'btn sm ghost', onclick:()=>{S.selection.clear();renderSheet();}},'Zrušit výběr') : null,
         el('button',{class:'btn primary', disabled:!n, onclick:e=>confirmReservation(e)},'Potvrdit rezervaci'))));
@@ -1348,15 +1367,19 @@ function viewProfile(){
   wrap.append(el('div',{class:'card pad'},
     el('div',{class:'row'},
       el('div',{class:'grow'}, el('b',{}, S.me.penalty_points+' trestných bodů'),
-        el('div',{class:'sub'}, S.me.penalty_points===0
-          ? 'Čistý štít — plný týdenní limit.'
-          : `Týdenní limit snížen na ${lim} ${lim===1?'den':lim<5?'dny':'dnů'}.`)),
-      el('span',{class: S.me.penalty_points>0?'tag red':'tag green'}, `${lim} dnů/týden`))));
+        el('div',{class:'sub'}, hasNoLimit()
+          ? 'Jako správce rezervujete bez týdenního limitu.'
+          : S.me.penalty_points===0
+            ? 'Čistý štít — plný týdenní limit.'
+            : `Týdenní limit snížen na ${dnyNom(lim)}.`)),
+      el('span',{class: hasNoLimit() ? 'tag green' : S.me.penalty_points>0?'tag red':'tag green'},
+        hasNoLimit() ? 'bez limitu' : `${dnyNom(lim)} / týden`))));
 
   wrap.append(el('div',{class:'sect-title'},'Jak to funguje'));
   wrap.append(el('div',{class:'card pad small muted', style:'line-height:1.6'},
     el('div',{},`• Rezervovat lze pracovní dny ${dayStart()}–${dayEnd()} h, nejvýše ${setting('max_days_ahead',21)} dní dopředu.`),
-    el('div',{},`• Týdenní limit je ${setting('weekly_day_limit',3)} rezervovaných dnů; délka rezervace v rámci dne se nepočítá.`),
+    el('div',{},`• Týdenní limit je ${dnyNom(Number(setting('weekly_day_limit',3)))}; délka rezervace v rámci dne se nepočítá.`
+      + (hasNoLimit() ? ' Na správce se nevztahuje.' : '')),
     el('div',{},`• Každých ${setting('penalty_points_per_slot',5)} trestných bodů ubere jeden den z týdenního limitu; od ${setting('penalty_block_threshold',20)} bodů se rezervace pozastaví.`),
     el('div',{},'• Rezervaci prosím zrušte, pokud nepřijedete — místo se hned uvolní ostatním.')));
 
