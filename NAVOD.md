@@ -45,22 +45,41 @@ nesmí dostat do prohlížeče. Proto je v projektu Edge Function `park-admin`:
 ověří si, že ji volá přihlášený správce, a teprve pak účet založí, změní heslo
 nebo smaže.
 
-Ve složce projektu (kde je `supabase/functions/park-admin/index.ts`):
+#### Varianta A: v prohlížeči (doporučeno, nic se neinstaluje)
+
+1. Otevřete zdrojový kód funkce na GitHubu:
+   [`supabase/functions/park-admin/index.ts`](https://github.com/martinwohanka/parking_GJK/blob/claude/parking-app-gymnasium-71p9ky/supabase/functions/park-admin/index.ts)
+   a zkopírujte **celý** obsah (tlačítko *Copy raw file* vpravo nahoře).
+2. V Supabase vyberte projekt → v levém menu **Edge Functions**.
+3. **Deploy a new function** → **Via Editor**.
+4. Jako název zadejte přesně `park-admin` — pod tímhle jménem ji aplikace volá.
+5. Smažte ukázkový kód v editoru a vložte zkopírovaný obsah.
+6. **Deploy function**. Do půl minuty je hotovo.
+
+Pozor: dashboard neumí verzování. Když se kód funkce v budoucnu změní,
+je potřeba ho vložit znovu (nebo použít variantu B).
+
+#### Varianta B: z terminálu
+
+Potřebuje Node.js. Ve složce projektu (tam, kde je podsložka `supabase`):
 
 ```bash
+git pull                                            # ať máte funkci u sebe
 npx supabase login                                  # otevře prohlížeč
 npx supabase link --project-ref eizrqgpkfeixgqymorro
 npx supabase functions deploy park-admin
 ```
 
-`project-ref` je ta část adresy projektu před `.supabase.co` — najdete ji
-i v Supabase pod **Settings → General → Reference ID**.
+`project-ref` je část adresy projektu před `.supabase.co`; najdete ji i
+v Supabase pod **Settings → General → Reference ID**.
+
+#### Ověření
 
 Žádné tajné klíče nastavovat nemusíte — `SUPABASE_URL`,
 `SUPABASE_ANON_KEY` a `SUPABASE_SERVICE_ROLE_KEY` doplní Supabase sám.
 
-Že je funkce nasazená, ověříte v Supabase v sekci **Edge Functions** —
-`park-admin` tam musí být v seznamu. Nebo z terminálu:
+Že je funkce nasazená, poznáte podle toho, že se `park-admin` objeví
+v seznamu v sekci **Edge Functions**. Nebo z terminálu:
 
 ```bash
 curl -i -X OPTIONS https://<project-ref>.supabase.co/functions/v1/park-admin

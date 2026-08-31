@@ -509,9 +509,10 @@ const API = {
       // Když funkce není nasazená, prohlížeč se k ní vůbec nedostane a
       // supabase-js hlásí jen "Failed to send a request to the Edge Function".
       if (/Failed to send a request|Failed to fetch|NOT_FOUND/i.test(msg)){
-        msg = 'Serverová funkce park-admin není nasazená v Supabase, '
-            + 'takže účty zatím nelze zakládat. Postup je v NAVOD.md, kapitola 2.2. '
-            + 'Zbytek aplikace funguje normálně.';
+        msg = 'Serverová funkce park-admin není v Supabase nasazená, takže účty '
+            + 'zatím nelze zakládat. Nasadíte ji v Supabase v sekci Edge Functions '
+            + '(Deploy a new function → Via Editor, název park-admin) — postup je '
+            + 'v NAVOD.md, kapitola 2.2. Zbytek aplikace funguje normálně.';
       }
       throw new Error(msg);
     }
