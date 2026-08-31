@@ -957,6 +957,12 @@ function viewLot(){
       : `Volné dny: ${Math.max(lim-used,0)} z ${lim}`))
   ));
 
+  if (!hasNoLimit() && used >= lim){
+    wrap.append(el('div',{class:'banner'},
+      `Týdenní limit ${dnyGen(lim)} máte vyčerpaný — další den už si tento týden nevezmete. `
+      + `Ve dnech, které už rezervované máte, si ale můžete přidat další hodiny.`));
+  }
+
   if (S.me.penalty_points > 0){
     const block = Number(setting('penalty_block_threshold',20));
     wrap.append(el('div',{class:'banner'},
@@ -1073,11 +1079,13 @@ function renderSheet(){
   const blockAt        = Number(setting('penalty_block_threshold', 20));
   const blockedByPoints = !hasNoLimit() && S.me.penalty_points >= blockAt;
   const overLimit      = !hasNoLimit() && daysUsedThisWeek() > limit;
+  const zbyva = Math.max(limit - daysUsedThisWeek(), 0);
   const limitNote =
       blockedByPoints ? `Máte ${S.me.penalty_points} trestných bodů — rezervace jsou pozastaveny.`
     : hasNoLimit()    ? 'Na správce se týdenní limit nevztahuje.'
     : overLimit       ? `Překročili byste týdenní limit ${dnyGen(limit)}. Odeberte některý den z výběru.`
-    :                   `Zbývá ${Math.max(limit - daysUsedThisWeek(), 0)} z ${dnyGen(limit)}`;
+    : zbyva === 0     ? `Limit ${dnyGen(limit)} vyčerpán — hodiny lze přidávat už jen v těchto dnech.`
+    :                   `Zbývá ${zbyva} z ${dnyGen(limit)}`;
 
   const table = el('table',{class:'grid'});
   const head = el('tr',{}, el('th',{class:'day'},''));

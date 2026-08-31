@@ -247,6 +247,11 @@ Limit se počítá od pondělí a jen za pracovní dny. Rozhoduje **den začátk
 rezervace: kdo si vezme jedno místo od 7 do 16 hodin a k tomu ještě jinou
 hodinu jinde téhož dne, spálí pořád jen jeden den z limitu.
 
+Z toho plyne věc, která na první pohled vypadá jako chyba: i když aplikace
+hlásí, že zbývá **0 dnů**, jde dál rezervovat — ale jen hodiny ve dnech,
+které už člověk zabrané má. Nový den se nepřidá. Aplikace na to v takové
+situaci sama upozorní.
+
 Kontrola běží v databázi (trigger `park_check_reservation`), ne v prohlížeči —
 kantor ji obejít nemůže.
 
