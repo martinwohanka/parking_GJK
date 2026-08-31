@@ -132,19 +132,33 @@ nav.tabbar svg{width:21px;height:21px;stroke-width:1.7}
 .lane-wall{display:grid;gap:8px;align-content:start}
 .lane-perp{display:flex;flex-direction:column;gap:8px}
 
-.spot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
-  padding:8px 4px;border-radius:11px;border:2px solid var(--free-line);background:var(--free-bg);
-  color:var(--free-text);text-align:center;box-shadow:var(--shadow);transition:.12s}
-.spot:hover{transform:translateY(-1px);filter:brightness(.98)}
-.spot.wall{min-height:152px}
-.spot.perp{min-height:56px;width:60%;margin-left:auto;flex:1}
-.spot.part{border-color:var(--part-line);background:var(--part-bg);color:var(--part-text)}
-.spot.full{border-color:var(--taken-line);background:var(--taken-bg);color:var(--taken-text)}
-.spot.off{border-color:var(--line);background:var(--surface-2);color:var(--muted);box-shadow:none}
-.spot-no{font-size:19px;font-weight:800;line-height:1}
-.spot-state{font-size:10.5px;font-weight:600;line-height:1.2}
-.spot-mine{font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
-  background:var(--mine-line);color:var(--mine-text);border-radius:5px;padding:1px 5px}
+.spot{display:flex;flex-direction:column;gap:6px;padding:8px 6px;border-radius:11px;
+  border:2px solid var(--free-line);background:var(--surface);box-shadow:var(--shadow);transition:.12s}
+.spot:hover{transform:translateY(-1px);border-color:var(--accent)}
+.spot.wall{min-height:152px;justify-content:center;align-items:stretch;text-align:center}
+.spot.perp{min-height:56px;width:60%;margin-left:auto;flex:1;justify-content:center}
+.spot.part{border-color:var(--part-line)}
+.spot.full{border-color:var(--taken-line)}
+.spot.off{border-color:var(--line);opacity:.6}
+
+.spot-head{display:flex;align-items:baseline;gap:6px;padding:0 1px}
+.spot.wall .spot-head{flex-direction:column;align-items:center;gap:1px}
+.spot-no{font-size:18px;font-weight:800;line-height:1;color:var(--free-text)}
+.spot.part .spot-no{color:var(--part-text)}
+.spot.full .spot-no{color:var(--taken-text)}
+.spot.off  .spot-no{color:var(--muted)}
+.spot-state{font-size:10px;font-weight:650;line-height:1.15;color:var(--muted)}
+.spot.perp .spot-state{margin-left:auto}
+.spot-mine{font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  background:var(--mine-line);color:var(--mine-text);border-radius:4px;padding:1px 4px}
+
+/* Mini kalendář uvnitř dlaždice: sloupce = hodiny, řádky = dny (Po–Pá).
+   Buňky jsou bez rámečku a plné barvy – při 7 px je obrys jen zašpiní. */
+.mini{display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:1px}
+.mini i{height:7px;border-radius:2px;background:var(--free-line);display:block}
+.mini i.t{background:var(--taken-line)}
+.mini i.m{background:var(--mine-line)}
+.mini i.p{background:var(--line)}
 
 /* ---------- Detail grid ---------- */
 .sheet-back{position:fixed;inset:0;z-index:60;background:rgba(20,19,17,.5);backdrop-filter:blur(3px);
@@ -886,11 +900,15 @@ function viewLot(){
       el('div',{class:'lane-perp'}, ...right.map(s=>spotCard(s,'perp')))),
     el('div',{class:'lot-badge exit'}, '⇅ Vjezd i výjezd')));
 
+  wrap.append(el('p',{class:'muted small',style:'margin:10px 2px 0;text-align:center'},
+    `V každém místě je týden: řádky shora dolů ${DAY_NAMES[0]}–${DAY_NAMES[4]}, `
+    + `sloupce hodiny ${dayStart()}–${dayEnd()}. Kliknutím na místo se otevře kalendář k rezervaci.`));
+
   wrap.append(el('div',{class:'legend'},
-    el('span',{},el('i',{style:'background:var(--free-bg);border:1px solid var(--free-line)'}),'volno'),
-    el('span',{},el('i',{style:'background:var(--taken-bg);border:1px solid var(--taken-line)'}),'obsazeno'),
-    el('span',{},el('i',{style:'background:var(--mine-bg);border:1px solid var(--mine-line)'}),'vaše rezervace'),
-    el('span',{},el('i',{style:'background:var(--surface-2);border:1px solid var(--line)'}),'mimo provoz / minulost')));
+    el('span',{},el('i',{style:'background:var(--free-line)'}),'volno'),
+    el('span',{},el('i',{style:'background:var(--taken-line)'}),'obsazeno'),
+    el('span',{},el('i',{style:'background:var(--mine-line)'}),'vaše rezervace'),
+    el('span',{},el('i',{style:'background:var(--line)'}),'mimo provoz / minulost')));
 
   return wrap;
 }
@@ -899,19 +917,35 @@ function viewLot(){
  * Dlaždice jednoho místa v plánku.
  *   kind 'wall' = podélné stání u budovy (úzké a vysoké),
  *   kind 'perp' = kolmé stání u zdi (nízké a kratší, zarovnané ke zdi).
- * Podrobný kalendář se otevře kliknutím, proto na dlaždici stačí číslo
- * a počet volných hodin.
+ *
+ * Rámeček nese celkový stav místa, uvnitř je mini kalendář týdne:
+ * sloupce = hodiny provozní doby, řádky = pondělí až pátek.
  */
 function spotCard(spot, kind){
   const H = hours();
+  const mini = el('div',{class:'mini', style:`--cols:${H.length}`});
   let free = 0, total = 0, mine = false;
+
   for (let d=0; d<5; d++){
     for (const h of H){
       const past = slotStart(addDays(S.week,d),h).getTime()+3600e3 < Date.now();
       const r = occupancy(spot.id,d,h);
       if (r && r.user_id===S.me.id) mine = true;
-      if (spot.is_blocked || past) continue;   // proběhlé hodiny se do poměru nepočítají
-      total++; if (!r) free++;
+
+      // Proběhlé hodiny a vyřazená místa se do poměru volno/obsazeno nepočítají.
+      let cls = 'p', stav;
+      if (spot.is_blocked)  stav = 'mimo provoz';
+      else if (past)        stav = r ? 'proběhlo — obsazeno' : 'proběhlo';
+      else {
+        total++;
+        if (r){
+          cls  = r.user_id===S.me.id ? 'm' : 't';
+          stav = r.user_id===S.me.id ? 'vaše rezervace'
+               : 'obsazeno — ' + (S.usersById[r.user_id]?.full_name || 'jiný kantor');
+        } else { cls = ''; free++; stav = 'volno'; }
+      }
+
+      mini.append(el('i',{class:cls, title:`${DAY_FULL[d]} ${h}:00–${h+1}:00 · ${stav}`}));
     }
   }
 
@@ -929,9 +963,11 @@ function spotCard(spot, kind){
       class:`spot ${kind} ${cls}`,
       title:`Místo ${spot.label}${spot.note?' – '+spot.note:''} · ${state}`,
       onclick:()=>openSpot(spot.id)},
-    el('div',{class:'spot-no'}, spot.label),
-    el('div',{class:'spot-state'}, state),
-    mine && el('span',{class:'spot-mine'},'moje'));
+    el('div',{class:'spot-head'},
+      el('span',{class:'spot-no'}, spot.label),
+      el('span',{class:'spot-state'}, state),
+      mine && el('span',{class:'spot-mine'},'moje')),
+    mini);
 }
 
 /* =====================================================================
