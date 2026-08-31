@@ -128,8 +128,37 @@ které v ukázce založíte, žijí do obnovení stránky.)
 
 ## 4. Nasazení
 
-Soubor přejmenujte na `index.html` a nahrajte do kořene subdomény
-(stejně jako u Valua a Síta). Na iPhonu i na Macu jde přidat na plochu jako PWA.
+Nahrává se jediný soubor: `web/index.html` do kořene subdomény. Na iPhonu
+i na Macu jde stránka přidat na plochu jako PWA.
+
+### 4.1 Automaticky z GitHubu (doporučeno)
+
+V repozitáři je připravený workflow `.github/workflows/deploy-ftp.yml`. Po
+každé změně souboru `web/index.html` ho GitHub sám nahraje na FTP — nemusíte
+nic přetahovat ručně a v historii je vidět, co se kdy změnilo.
+
+Jednorázové nastavení v GitHubu, **Settings → Secrets and variables → Actions**:
+
+| Záložka | Název | Hodnota |
+| --- | --- | --- |
+| Secrets | `FTP_SERVER` | adresa FTP serveru, např. `ftp.gjk.cz` |
+| Secrets | `FTP_USERNAME` | přihlašovací jméno k FTP |
+| Secrets | `FTP_PASSWORD` | heslo k FTP |
+| Variables | `FTP_DIR` | cílová složka na serveru, např. `./www/parkoviste/` |
+
+`FTP_DIR` musí odpovídat složce, kterou webhosting servíruje na zvolené
+adrese. Když si nejste jistý, podívejte se do FTP klienta, kam se ukládá
+stávající web — typicky `./www/`, `./public_html/` nebo `./web/`.
+
+Před nahráním workflow spustí `scripts/kontrola.mjs`. Když by měl jít na web
+rozbitý soubor, nahrání se neprovede.
+
+Dokud `FTP_SERVER` chybí, workflow doběhne a nahrání jen přeskočí.
+
+### 4.2 Ručně
+
+Pořád je to jeden soubor — `web/index.html` nahrajte FTP klientem
+(Cyberduck, FileZilla) do kořene subdomény. Nic jiného tam nepatří.
 
 ## 5. E-maily
 
