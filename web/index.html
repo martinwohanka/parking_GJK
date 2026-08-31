@@ -1,0 +1,1527 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f4f0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#171614" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Parkoviště">
+<title>Parkoviště GJK</title>
+<style>
+:root{
+  --bg:#f6f4f0; --surface:#ffffff; --surface-2:#faf8f5; --line:#e4e0d9; --line-strong:#cfc9bf;
+  --text:#1c1b19; --muted:#78726a; --accent:#2f6b4f; --accent-text:#ffffff;
+  --free-bg:#dcf0e4; --free-line:#8ccca9; --free-text:#1f5138;
+  --taken-bg:#f7dcd8; --taken-line:#e2a49b; --taken-text:#7a2f24;
+  --part-bg:#f8eddb; --part-line:#dcbb7e; --part-text:#7a5417;
+  --mine-bg:#dae5f6; --mine-line:#98b6e0; --mine-text:#243f6b;
+  --sel-bg:#2f6b4f; --sel-line:#24523c;
+  --warn:#a35a1b; --danger:#a33b2c;
+  --radius:14px; --shadow:0 1px 2px rgba(28,27,25,.05), 0 8px 24px -12px rgba(28,27,25,.14);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#171614; --surface:#211f1c; --surface-2:#1b1a17; --line:#34312c; --line-strong:#46423b;
+    --text:#f1eee9; --muted:#a09a91; --accent:#4e9c76; --accent-text:#0e1a14;
+    --free-bg:#1e3b2c; --free-line:#3d7357; --free-text:#a9e0c2;
+    --taken-bg:#3d221d; --taken-line:#7a463c; --taken-text:#f0b5aa;
+    --part-bg:#3a2e1a; --part-line:#6d5730; --part-text:#e8c98d;
+    --mine-bg:#1f2c42; --mine-line:#3e5a86; --mine-text:#b7cdf0;
+    --sel-bg:#4e9c76; --sel-line:#6fb894;
+    --warn:#d9954f; --danger:#e08272;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--text); font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; overscroll-behavior-y:none;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none}
+a{color:var(--accent)}
+h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
+.hidden{display:none !important}
+
+/* ---------- Layout ---------- */
+.app{max-width:1180px;margin:0 auto;padding:0 16px calc(84px + env(safe-area-inset-bottom))}
+@media(min-width:900px){ .app{padding-bottom:40px} }
+
+header.top{
+  position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 88%,transparent);
+  backdrop-filter:blur(12px); border-bottom:1px solid var(--line); padding:10px 16px;
+  /* Hlavička je sourozencem obsahu, ne jeho potomkem – roztahovat ji
+     zápornými okraji není potřeba a na mobilu působilo vodorovné posouvání. */
+  margin:0 0 18px;
+}
+.top-in{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:680;letter-spacing:-.02em}
+.brand .dot{width:22px;height:22px;border-radius:6px;background:var(--accent);color:var(--accent-text);
+  display:grid;place-items:center;font-size:13px;font-weight:800}
+.top .spacer{flex:1}
+.nav-desk{display:none;gap:2px}
+@media(min-width:900px){ .nav-desk{display:flex} }
+.nav-desk button{padding:7px 13px;border-radius:9px;font-size:14.5px;font-weight:550;color:var(--muted)}
+.nav-desk button:hover{background:var(--surface)}
+.nav-desk button[aria-current="true"]{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+
+nav.tabbar{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;background:color-mix(in srgb,var(--surface) 94%,transparent);
+  backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+}
+@media(min-width:900px){ nav.tabbar{display:none} }
+nav.tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;
+  font-size:11px;font-weight:600;color:var(--muted);border-radius:10px}
+nav.tabbar button[aria-current="true"]{color:var(--accent)}
+nav.tabbar svg{width:21px;height:21px;stroke-width:1.7}
+
+/* ---------- Bits ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.pad{padding:16px}
+.row{display:flex;align-items:center;gap:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 16px;border-radius:10px;
+  font-weight:600;font-size:15px;border:1px solid var(--line-strong);background:var(--surface);transition:.12s}
+.btn:hover{border-color:var(--muted)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--accent);color:var(--accent-text);border-color:transparent}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn.ghost:hover{background:var(--surface-2);color:var(--text)}
+.btn.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 35%,transparent)}
+.btn.sm{padding:6px 11px;font-size:13.5px;border-radius:8px}
+.field{display:block;margin-bottom:12px}
+.field span{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:5px}
+.input{width:100%;padding:11px 13px;border:1px solid var(--line-strong);border-radius:10px;background:var(--surface-2)}
+.input:focus{outline:2px solid color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:1px;border-color:var(--accent)}
+.muted{color:var(--muted)}
+.small{font-size:13.5px}
+.tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:12.5px;font-weight:650;
+  background:var(--surface-2);border:1px solid var(--line)}
+.tag.green{background:var(--free-bg);border-color:var(--free-line);color:var(--free-text)}
+.tag.red{background:var(--taken-bg);border-color:var(--taken-line);color:var(--taken-text)}
+.tag.blue{background:var(--mine-bg);border-color:var(--mine-line);color:var(--mine-text)}
+.sect-title{font-size:12.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:26px 0 10px}
+.divide > * + *{border-top:1px solid var(--line)}
+
+/* ---------- Week bar ---------- */
+.weekbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.weekbar .nav{display:flex;gap:4px}
+.weekbar .nav button{width:34px;height:34px;border-radius:9px;border:1px solid var(--line-strong);background:var(--surface);
+  display:grid;place-items:center;font-size:16px}
+.weekbar .label{font-weight:650}
+.tokens{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:600}
+.pips{display:flex;gap:3px}
+.pip{width:9px;height:9px;border-radius:3px;background:var(--free-line)}
+.pip.used{background:var(--line-strong)}
+
+/* ---------- Plánek parkoviště ---------- */
+/* Geometrie odpovídá skutečnosti: vlevo úzká podélná stání u budovy,
+   vpravo kratší kolmá stání u zdi, mezi nimi průjezd.
+   Vstup do budovy je vlevo nahoře, vjezd i výjezd (jedno a totéž
+   místo) vlevo dole. */
+.lot{max-width:620px;margin:0 auto;padding:12px;background:var(--surface-2);
+  border:2px dashed var(--line-strong);border-radius:var(--radius)}
+.lot-badge{width:148px;max-width:100%;padding:6px 8px;border-radius:9px;background:var(--line);
+  color:var(--muted);font-size:10.5px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;
+  text-align:center;line-height:1.25}
+.lot-badge.exit{background:var(--line-strong);color:var(--text)}
+.lot-rows{display:grid;grid-template-columns:64px 1fr;gap:10px;margin:8px 0}
+@media(min-width:760px){ .lot-rows{grid-template-columns:84px 1fr;gap:18px} }
+.lane-wall{display:grid;gap:8px;align-content:start}
+.lane-perp{display:flex;flex-direction:column;gap:8px}
+
+.spot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  padding:8px 4px;border-radius:11px;border:2px solid var(--free-line);background:var(--free-bg);
+  color:var(--free-text);text-align:center;box-shadow:var(--shadow);transition:.12s}
+.spot:hover{transform:translateY(-1px);filter:brightness(.98)}
+.spot.wall{min-height:152px}
+.spot.perp{min-height:56px;width:60%;margin-left:auto;flex:1}
+.spot.part{border-color:var(--part-line);background:var(--part-bg);color:var(--part-text)}
+.spot.full{border-color:var(--taken-line);background:var(--taken-bg);color:var(--taken-text)}
+.spot.off{border-color:var(--line);background:var(--surface-2);color:var(--muted);box-shadow:none}
+.spot-no{font-size:19px;font-weight:800;line-height:1}
+.spot-state{font-size:10.5px;font-weight:600;line-height:1.2}
+.spot-mine{font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+  background:var(--mine-line);color:var(--mine-text);border-radius:5px;padding:1px 5px}
+
+/* ---------- Detail grid ---------- */
+.sheet-back{position:fixed;inset:0;z-index:60;background:rgba(20,19,17,.5);backdrop-filter:blur(3px);
+  display:flex;align-items:flex-end;justify-content:center}
+@media(min-width:760px){ .sheet-back{align-items:center;padding:24px} }
+.sheet{background:var(--bg);width:100%;max-width:820px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;
+  border:1px solid var(--line);box-shadow:0 -8px 40px rgba(0,0,0,.28)}
+@media(min-width:760px){ .sheet{border-radius:18px} }
+.sheet-head{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);padding:14px 18px;
+  display:flex;align-items:center;gap:12px;z-index:2}
+.sheet-body{padding:16px 18px 20px}
+.sheet-foot{position:sticky;bottom:0;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);padding:12px 18px calc(12px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center}
+
+.grid-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -18px;padding:0 18px}
+table.grid{border-collapse:separate;border-spacing:3px;min-width:100%}
+table.grid th{font-size:11px;font-weight:700;color:var(--muted);padding:0 0 2px;text-align:center;white-space:nowrap}
+table.grid th.day{text-align:left;padding-right:6px;font-size:12.5px;color:var(--text)}
+table.grid td.day{font-size:12.5px;font-weight:650;white-space:nowrap;padding-right:6px}
+table.grid td.day small{display:block;font-weight:500;color:var(--muted);font-size:11px}
+.cell{width:100%;min-width:34px;height:38px;border-radius:7px;border:1px solid var(--free-line);background:var(--free-bg);
+  display:grid;place-items:center;font-size:10px;font-weight:700;color:var(--free-text);padding:0 2px;overflow:hidden;
+  transition:.08s}
+.cell:hover{filter:brightness(.96)}
+.cell.taken{background:var(--taken-bg);border-color:var(--taken-line);color:var(--taken-text);cursor:not-allowed}
+.cell.mine{background:var(--mine-bg);border-color:var(--mine-line);color:var(--mine-text)}
+.cell.past,.cell.blocked{background:var(--surface-2);border-color:var(--line);color:var(--muted);cursor:not-allowed;opacity:.7}
+.cell.sel{background:var(--sel-bg);border-color:var(--sel-line);color:#fff;transform:scale(.96)}
+.cell .who{font-size:9.5px;line-height:1.1;text-align:center;word-break:break-word}
+@media(max-width:759px){
+  table.grid{min-width:0;border-spacing:2px}
+  .cell{width:34px;min-width:34px;height:38px;font-size:9px}
+  .cell .who{font-size:8.5px}
+  table.grid td.day,table.grid th.day{position:sticky;left:0;background:var(--bg);z-index:1;padding-right:6px}
+}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--muted);margin-top:12px}
+.legend i{width:12px;height:12px;border-radius:4px;display:inline-block;vertical-align:-2px;margin-right:5px}
+
+/* ---------- Lists ---------- */
+.item{display:flex;gap:12px;align-items:center;padding:13px 15px}
+.item .grow{flex:1;min-width:0}
+.item b{display:block;font-weight:650;font-size:15px}
+.item .sub{font-size:13px;color:var(--muted)}
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty .big{font-size:32px;margin-bottom:8px;opacity:.5}
+
+/* ---------- Toast ---------- */
+#toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));z-index:90;
+  display:flex;flex-direction:column;gap:8px;width:calc(100% - 32px);max-width:440px}
+@media(min-width:900px){ #toasts{bottom:24px;left:auto;right:24px;transform:none} }
+.toast{padding:12px 15px;border-radius:12px;background:var(--text);color:var(--bg);font-size:14.5px;font-weight:550;
+  box-shadow:0 8px 30px -8px rgba(0,0,0,.5);animation:pop .2s ease}
+.toast.err{background:var(--danger);color:#fff}
+.toast.ok{background:var(--accent);color:var(--accent-text)}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ---------- Auth ---------- */
+.auth{min-height:100dvh;display:grid;place-items:center;padding:24px}
+.auth-box{width:100%;max-width:390px}
+.auth-logo{width:52px;height:52px;border-radius:15px;background:var(--accent);color:var(--accent-text);
+  display:grid;place-items:center;font-size:24px;font-weight:800;margin-bottom:18px}
+.banner{padding:11px 14px;border-radius:11px;font-size:13.5px;line-height:1.45;
+  background:color-mix(in srgb,var(--warn) 14%,transparent);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);
+  color:var(--warn);margin-bottom:14px}
+</style>
+</head>
+<body>
+
+<div id="auth-screen" class="auth hidden">
+  <div class="auth-box">
+    <div class="auth-logo">P</div>
+    <h1 style="font-size:26px">Parkoviště GJK</h1>
+    <p class="muted" style="margin:6px 0 20px">Rezervace parkovacích míst pro kantory. Přihlaste se údaji, které vám dal správce.</p>
+    <div id="demo-banner" class="banner hidden"></div>
+    <div class="card pad">
+      <label class="field">
+        <span>Školní e-mail</span>
+        <input id="login-email" class="input" type="email" inputmode="email" autocomplete="username" placeholder="jmeno.prijmeni@gjk.cz">
+      </label>
+      <label class="field">
+        <span>Heslo</span>
+        <input id="login-pass" class="input" type="password" autocomplete="current-password" placeholder="••••••••">
+      </label>
+      <button id="login-btn" class="btn primary" style="width:100%">Přihlásit se</button>
+      <p id="login-msg" class="small muted" style="margin:12px 0 0"></p>
+      <p class="small muted" style="margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line)">
+        Účty zakládá správce parkoviště. Nemáte přihlašovací údaje nebo jste
+        zapomněl heslo? Ozvěte se mu, nové heslo vám nastaví.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div id="pw-screen" class="auth hidden">
+  <div class="auth-box">
+    <h1 style="font-size:24px">Nastavte si vlastní heslo</h1>
+    <p class="muted" style="margin:6px 0 18px">Heslo, které vám dal správce, zná i on.
+      Zvolte si prosím vlastní — pak už ho nikdo jiný nezná.</p>
+    <div class="card pad">
+      <label class="field"><span>Nové heslo (alespoň 8 znaků)</span>
+        <input id="pw-new" class="input" type="password" autocomplete="new-password"></label>
+      <label class="field"><span>Nové heslo znovu</span>
+        <input id="pw-new2" class="input" type="password" autocomplete="new-password"></label>
+      <button id="pw-save" class="btn primary" style="width:100%">Uložit heslo</button>
+      <p id="pw-msg" class="small muted" style="margin:12px 0 0"></p>
+    </div>
+  </div>
+</div>
+
+<div id="onboard-screen" class="auth hidden">
+  <div class="auth-box">
+    <h1 style="font-size:24px">Ještě dvě věci</h1>
+    <p class="muted" style="margin:6px 0 18px">Bez SPZ nelze rezervovat — podle ní se pozná, kdo na místě stojí.</p>
+    <div class="card pad">
+      <label class="field"><span>Jméno a příjmení</span>
+        <input id="ob-name" class="input" placeholder="Jan Novák"></label>
+      <label class="field"><span>SPZ (více oddělte čárkou)</span>
+        <input id="ob-plates" class="input" placeholder="1AB 2345, 4CD 5678"></label>
+      <label class="field"><span>Telefon (nepovinné, pro případ přeparkování)</span>
+        <input id="ob-phone" class="input" inputmode="tel" placeholder="+420 …"></label>
+      <button id="ob-save" class="btn primary" style="width:100%">Uložit a pokračovat</button>
+    </div>
+  </div>
+</div>
+
+<div id="app-screen" class="hidden">
+  <header class="top">
+    <div class="top-in">
+      <div class="brand"><span class="dot">P</span><span>Parkoviště</span></div>
+      <div class="nav-desk" id="nav-desk"></div>
+      <div class="spacer"></div>
+      <button class="btn sm ghost" id="signout">Odhlásit</button>
+    </div>
+  </header>
+  <main class="app" id="view"></main>
+  <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<div id="sheet-root"></div>
+<div id="toasts"></div>
+
+<script type="module">
+/* =====================================================================
+   KONFIGURACE
+   Doplňte údaje ze Supabase projektu Studovny:
+   Settings → API Keys → Publishable key (sb_publishable_…).
+   Starý 'anon' klíč z Legacy API Keys funguje taky, ale Supabase ho
+   vyřazuje do konce roku 2026 — použijte radši publishable.
+   Dokud tu zůstane 'DEMO', běží aplikace v ukázkovém režimu
+   s testovacími daty v paměti prohlížeče.
+   ===================================================================== */
+const CONFIG = {
+  url:     'https://eizrqgpkfeixgqymorro.supabase.co',   // např. 'https://xxxxxxxx.supabase.co'
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpenJxZ3BrZmVpeGdxeW1vcnJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA1NzEwMDIsImV4cCI6MjA5NjE0NzAwMn0.Msbij2H8SqobFBuYr9jQVc1Tt6Vp76uueGRVFpKWNA0',   // sb_publishable_… (nebo starý anon key)
+  emailDomain: 'gjk.cz',
+};
+/* ================================================================== */
+
+const DEMO = CONFIG.url === 'DEMO';
+const TZ = 'Europe/Prague';
+const DAY_NAMES = ['Po','Út','St','Čt','Pá'];
+const DAY_FULL  = ['pondělí','úterý','středa','čtvrtek','pátek'];
+
+let sb = null;
+if (!DEMO) {
+  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.49.4');
+  sb = createClient(CONFIG.url, CONFIG.anonKey);
+}
+
+/* ---------------- Stav ---------------- */
+const S = {
+  me: null,            // řádek park_users
+  settings: {},
+  spots: [],
+  week: mondayOf(new Date()),
+  reservations: [],    // pro zobrazený týden
+  usersById: {},
+  tab: 'lot',
+  selection: new Set(),// "spotId|dayIdx|hour"
+  openSpot: null,
+};
+
+/* ---------------- Utilitky ---------------- */
+const $ = (s,r=document)=>r.querySelector(s);
+const el = (t,a={},...c)=>{const n=document.createElement(t);
+  for(const[k,v]of Object.entries(a)){ if(k==='class')n.className=v; else if(k==='html')n.innerHTML=v;
+    else if(k.startsWith('on'))n.addEventListener(k.slice(2),v); else if(v!==false&&v!=null)n.setAttribute(k,v); }
+  for(const x of c.flat()){ if(x==null||x===false)continue; n.append(x.nodeType?x:document.createTextNode(x)); }
+  return n;};
+
+function mondayOf(d){ const x=new Date(d); const wd=(x.getDay()+6)%7; x.setDate(x.getDate()-wd); x.setHours(0,0,0,0); return x; }
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function ymd(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function dm(d){ return `${d.getDate()}. ${d.getMonth()+1}.`; }
+function slotStart(day,hour){ const x=new Date(day); x.setHours(hour,0,0,0); return x; }
+function sameWeek(a,b){ return mondayOf(a).getTime()===mondayOf(b).getTime(); }
+function esc(s){ return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function initials(name,email){ const n=(name||'').trim(); if(n){const p=n.split(/\s+/);return (p[0][0]+(p[1]?.[0]||'')).toUpperCase();}
+  return (email||'?').slice(0,2).toUpperCase(); }
+function shortName(u){ if(!u) return 'obsazeno'; const n=(u.full_name||'').trim();
+  if(!n) return u.email.split('@')[0]; const p=n.split(/\s+/); return p.length>1? `${p[0][0]}. ${p[p.length-1]}` : n; }
+function normPlate(s){ return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,''); }
+function fmtPlate(s){ const p=normPlate(s); return p.length>4? p.slice(0,3)+' '+p.slice(3) : p; }
+
+// Vyslovitelné heslo — slabiky bez háčků a bez znaků, co se pletou (0/O, 1/l)
+function makePassword(){
+  const c='bcdfghjkmnpqrstvz', v='aeiouy';
+  let out='';
+  for (let i=0;i<3;i++) out += c[Math.floor(Math.random()*c.length)] + v[Math.floor(Math.random()*v.length)];
+  return out.charAt(0).toUpperCase() + out.slice(1) + '-' + String(Math.floor(Math.random()*9000)+1000);
+}
+
+function toast(msg,kind=''){ const t=el('div',{class:'toast '+kind},msg); $('#toasts').append(t);
+  setTimeout(()=>{t.style.transition='.25s';t.style.opacity='0';t.style.transform='translateY(6px)';
+    setTimeout(()=>t.remove(),260);}, kind==='err'?5200:3000); }
+
+const setting = (k,d)=> S.settings[k]!==undefined ? S.settings[k] : d;
+const dayStart = ()=> Number(setting('day_start_hour',7));
+const dayEnd   = ()=> Number(setting('day_end_hour',16));
+const hours    = ()=>{ const a=[]; for(let h=dayStart();h<dayEnd();h++) a.push(h); return a; };
+const isAdmin  = ()=> S.me?.role==='admin';
+
+function effectiveLimit(u=S.me){
+  const base = Number(setting('weekly_day_limit',3));
+  const per  = Number(setting('penalty_points_per_slot',5))||5;
+  return Math.max(base - Math.floor((u?.penalty_points||0)/per), 0);
+}
+function daysUsedThisWeek(){
+  const set=new Set();
+  for(const r of S.reservations){ if(r.user_id===S.me.id) set.add(ymd(new Date(r.start))); }
+  for(const key of S.selection){ const [,di]=key.split('|'); set.add(ymd(addDays(S.week,Number(di)))); }
+  return set.size;
+}
+
+/* =====================================================================
+   DATOVÁ VRSTVA
+   Stejné rozhraní pro Supabase i pro demo režim.
+   ===================================================================== */
+const DemoDB = {
+  users: [
+    {id:'u-me',   email:'martin@gjk.cz',  full_name:'Martin (vy)',   plates:['1AB2345'], role:'admin',   is_active:true, penalty_points:0, phone:'', must_change_password:false},
+    {id:'u-nov',  email:'novakova@gjk.cz',full_name:'Jana Nováková', plates:['5CD6789'], role:'teacher', is_active:true, penalty_points:0, phone:'', must_change_password:false},
+    {id:'u-svo',  email:'svoboda@gjk.cz', full_name:'Petr Svoboda',  plates:['7EF8901'], role:'teacher', is_active:true, penalty_points:10,phone:'', must_change_password:false},
+    {id:'u-dvo',  email:'dvorak@gjk.cz',  full_name:'Eva Dvořáková', plates:['3GH4567'], role:'teacher', is_active:true, penalty_points:0, phone:'', must_change_password:false},
+  ],
+  spots: Array.from({length:10},(_,i)=>({id:i+1,label:String(i+1),
+    zone: i+1<=7?'pravý pruh':'levý pruh', is_blocked:false, block_note:'', note:'', sort_order:i+1})),
+  settings:{weekly_day_limit:3,day_start_hour:7,day_end_hour:16,allow_overnight:true,
+    penalty_points_per_slot:5,penalty_block_threshold:20,max_days_ahead:21,
+    email_from:'Parkoviště GJK <parkoviste@gjk.cz>'},
+  reservations:[],
+  penalties:[],
+  seeded:false,
+  signedIn:false,
+  meId:'u-me',
+};
+
+function demoSeed(){
+  if (DemoDB.seeded) return; DemoDB.seeded = true;
+  const mon = mondayOf(new Date());
+  const mk=(spot,uid,di,h1,h2,overnight=false)=>DemoDB.reservations.push({
+    id:'r'+Math.random().toString(36).slice(2,9), spot_id:spot, user_id:uid,
+    start:slotStart(addDays(mon,di),h1).toISOString(),
+    end: overnight ? slotStart(addDays(mon,di+1),7).toISOString() : slotStart(addDays(mon,di),h2).toISOString(),
+    is_overnight:overnight, note:''});
+  // ukázková data umístíme na dosud neproběhlé dny tohoto a příštího týdne
+  const todayIdx = Math.min((new Date().getDay()+6)%7, 4);
+  const d = (n)=> todayIdx + n <= 4 ? todayIdx + n : todayIdx + n + 2;  // přeteče do příštího týdne
+  mk(1,'u-nov',d(0),7,12); mk(1,'u-svo',d(2),9,16); mk(2,'u-dvo',d(1),8,10);
+  mk(3,'u-nov',d(3),7,16); mk(5,'u-svo',d(0),13,16); mk(7,'u-dvo',d(4),7,9);
+  mk(9,'u-nov',d(2),16,17,true); mk(4,'u-dvo',d(1),14,16);
+  DemoDB.penalties.push({id:'p1',plate:'7EF8901',target_user:'u-svo',reported_by:'u-dvo',
+    reason:'Stál přes dvě místa u vjezdu.',points:5,status:'pending',
+    occurred_at:new Date(Date.now()-864e5).toISOString(),admin_note:''});
+}
+
+/* ---- Správa účtů v ukázkovém režimu ---- */
+function demoAdminCall({action, email, password, full_name, phone, plates, role, user_id}){
+  if (action==='create'){
+    email=(email||'').toLowerCase().trim();
+    if (!email.endsWith('@'+CONFIG.emailDomain)) throw new Error(`Účet lze založit jen pro adresu @${CONFIG.emailDomain}.`);
+    if ((password||'').length<8) throw new Error('Heslo musí mít alespoň 8 znaků.');
+    if (!full_name) throw new Error('Vyplňte jméno.');
+    if (DemoDB.users.some(u=>u.email===email)) throw new Error('Účet s touto adresou už existuje.');
+    const u={ id:'u'+Math.random().toString(36).slice(2,7), email, full_name, phone:phone||'',
+      plates:(plates||[]).map(normPlate).filter(Boolean), role:role==='admin'?'admin':'teacher',
+      is_active:true, penalty_points:0, must_change_password:true };
+    DemoDB.users.push(u); return { ok:true, id:u.id, email };
+  }
+  if (action==='set_password'){
+    if ((password||'').length<8) throw new Error('Heslo musí mít alespoň 8 znaků.');
+    const u=DemoDB.users.find(x=>x.id===user_id); if(u) u.must_change_password=true;
+    return { ok:true };
+  }
+  if (action==='delete'){
+    if (user_id===S.me.id) throw new Error('Nelze smazat vlastní účet.');
+    DemoDB.users = DemoDB.users.filter(u=>u.id!==user_id);
+    DemoDB.reservations = DemoDB.reservations.filter(r=>r.user_id!==user_id);
+    return { ok:true };
+  }
+  throw new Error('Neznámá akce.');
+}
+
+/* ---- Parsování tstzrange z PostgREST ---- */
+function parseRange(v){
+  if (Array.isArray(v)) return v;
+  const m = String(v).match(/[\[\(]"?([^",]+)"?,"?([^",\]\)]+)"?[\]\)]/);
+  if(!m) return [null,null];
+  return [new Date(m[1]).toISOString(), new Date(m[2]).toISOString()];
+}
+
+const API = {
+  /* ---- auth ---- */
+  async signIn(email, password){
+    if (DEMO){
+      const u = DemoDB.users.find(x=>x.email===email);
+      if (!u) throw new Error('Takový účet neexistuje. V ukázce zkuste martin@gjk.cz.');
+      if (!password) throw new Error('Zadejte heslo.');
+      DemoDB.signedIn = true; DemoDB.meId = u.id; return {ok:true};
+    }
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(/invalid login/i.test(error.message)
+      ? 'Nesprávný e-mail nebo heslo.' : error.message);
+    return {ok:true};
+  },
+
+  async changeOwnPassword(password){
+    if (DEMO){
+      const u = DemoDB.users.find(x=>x.id===S.me.id);
+      u.must_change_password = false; S.me.must_change_password = false;
+      return {ok:true};
+    }
+    const { error } = await sb.auth.updateUser({ password });
+    if (error) throw new Error(/should be different|same as/i.test(error.message)
+      ? 'Nové heslo musí být jiné než to současné.' : error.message);
+    await API.updateProfile({ must_change_password: false });
+    return {ok:true};
+  },
+
+  /* ---- správa účtů (Edge Function park-admin) ---- */
+  async adminCall(payload){
+    if (DEMO) return demoAdminCall(payload);
+    const { data, error } = await sb.functions.invoke('park-admin', { body: payload });
+    if (error){
+      // chybová hláška z funkce přijde v těle odpovědi
+      let msg = error.message || 'Akce se nezdařila.';
+      try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch(_){}
+      throw new Error(msg);
+    }
+    if (data?.error) throw new Error(data.error);
+    return data;
+  },
+  async currentUser(){
+    if (DEMO) return DemoDB.signedIn
+      ? DemoDB.users.find(u=>u.id===(DemoDB.meId||'u-me')) : null;
+    const { data:{ session } } = await sb.auth.getSession();
+    if (!session) return null;
+    const { data, error } = await sb.from('park_users').select('*').eq('id', session.user.id).maybeSingle();
+    if (error) throw error;
+    if (data) return data;
+    // Profil ještě nevznikl (trigger) — dopočítáme
+    const { data: created, error: e2 } = await sb.from('park_users')
+      .insert({ id: session.user.id, email: session.user.email.toLowerCase() }).select().single();
+    if (e2) throw e2;
+    return created;
+  },
+  async signOut(){
+    if (!DEMO){ await sb.auth.signOut(); location.reload(); return; }
+    DemoDB.signedIn = false; DemoDB.meId = null;
+    S.me = null; S.selection.clear(); S.tab = 'lot';
+    $('#login-email').value = ''; $('#login-pass').value = '';
+    loginMsg(''); show('auth');
+  },
+
+  /* ---- základní data ---- */
+  async loadBase(){
+    if (DEMO){ demoSeed();
+      return { settings:{...DemoDB.settings}, spots:[...DemoDB.spots], users:[...DemoDB.users] }; }
+    const [st, sp, us] = await Promise.all([
+      sb.from('park_settings').select('key,value'),
+      sb.from('park_spots').select('*').order('sort_order'),
+      sb.from('park_users').select('id,email,full_name,plates,role,is_active,penalty_points'),
+    ]);
+    for (const r of [st,sp,us]) if (r.error) throw r.error;
+    const settings={}; for(const row of st.data) settings[row.key]=row.value;
+    return { settings, spots:sp.data, users:us.data };
+  },
+
+  async loadWeek(monday){
+    const from = new Date(monday); from.setHours(0,0,0,0);
+    const to   = addDays(from,7);
+    if (DEMO){
+      return DemoDB.reservations.filter(r=> new Date(r.end)>from && new Date(r.start)<to)
+        .map(r=>({...r}));
+    }
+    const { data, error } = await sb.from('park_reservations')
+      .select('id,spot_id,user_id,period,is_overnight,note')
+      .filter('period','ov',`[${from.toISOString()},${to.toISOString()})`);
+    if (error) throw error;
+    return data.map(r=>{ const [s,e]=parseRange(r.period); return {...r,start:s,end:e}; });
+  },
+
+  async createReservations(items){
+    // items: [{spot_id, start:Date, end:Date, is_overnight}]
+    if (DEMO){
+      for (const it of items){
+        const clash = DemoDB.reservations.some(r=> r.spot_id===it.spot_id &&
+          new Date(r.start) < it.end && it.start < new Date(r.end));
+        if (clash) throw new Error('Někdo si mezitím zabral stejný slot.');
+      }
+      const made = items.map(it=>({id:'r'+Math.random().toString(36).slice(2,9), spot_id:it.spot_id,
+        user_id:S.me.id, start:it.start.toISOString(), end:it.end.toISOString(),
+        is_overnight:!!it.is_overnight, note:''}));
+      DemoDB.reservations.push(...made);
+      return made;
+    }
+    const rows = items.map(it=>({ spot_id:it.spot_id, user_id:S.me.id,
+      period:`[${it.start.toISOString()},${it.end.toISOString()})`, is_overnight:!!it.is_overnight }));
+    const { data, error } = await sb.from('park_reservations').insert(rows).select('id');
+    if (error) throw new Error(prettyPgError(error));
+    return data;
+  },
+
+  async cancelReservations(ids){
+    if (DEMO){ DemoDB.reservations = DemoDB.reservations.filter(r=>!ids.includes(r.id)); return; }
+    const { error } = await sb.from('park_reservations').delete().in('id', ids);
+    if (error) throw new Error(prettyPgError(error));
+  },
+
+  async myReservations(){
+    if (DEMO) return DemoDB.reservations.filter(r=>r.user_id===S.me.id && new Date(r.end)>new Date())
+      .sort((a,b)=>a.start.localeCompare(b.start)).map(r=>({...r}));
+    const { data, error } = await sb.from('park_reservations')
+      .select('id,spot_id,user_id,period,is_overnight')
+      .eq('user_id', S.me.id)
+      .filter('period','sr',`[${new Date().toISOString()},infinity)`)
+      .limit(200);
+    if (error) throw error;
+    return data.map(r=>{const [s,e]=parseRange(r.period);return {...r,start:s,end:e};})
+      .sort((a,b)=>a.start.localeCompare(b.start));
+  },
+
+  async updateProfile(patch){
+    if (DEMO){ Object.assign(S.me, patch);
+      const u=DemoDB.users.find(x=>x.id===S.me.id); Object.assign(u,patch); return S.me; }
+    const { data, error } = await sb.from('park_users').update(patch).eq('id',S.me.id).select().single();
+    if (error) throw new Error(prettyPgError(error));
+    return data;
+  },
+
+  /* ---- trestné body ---- */
+  async reportPlate({plate, reason, points, occurred_at}){
+    if (DEMO){
+      const target = DemoDB.users.find(u=>u.plates.map(normPlate).includes(normPlate(plate)));
+      const row={id:'p'+Math.random().toString(36).slice(2,7), plate:normPlate(plate),
+        target_user:target?.id||null, reported_by:S.me.id, reason, points, status:'pending',
+        occurred_at:occurred_at||new Date().toISOString(), admin_note:''};
+      DemoDB.penalties.push(row); return row;
+    }
+    const { data, error } = await sb.from('park_penalties')
+      .insert({ plate, reason, points, reported_by:S.me.id, occurred_at: occurred_at||new Date().toISOString() })
+      .select().single();
+    if (error) throw new Error(prettyPgError(error));
+    return data;
+  },
+  async listPenalties(){
+    if (DEMO) return DemoDB.penalties.map(p=>({...p})).sort((a,b)=>b.occurred_at.localeCompare(a.occurred_at));
+    const { data, error } = await sb.from('park_penalties').select('*').order('occurred_at',{ascending:false}).limit(200);
+    if (error) throw error;
+    return data;
+  },
+  async resolvePenalty(id, status, admin_note=''){
+    if (DEMO){
+      const p=DemoDB.penalties.find(x=>x.id===id); p.status=status; p.admin_note=admin_note;
+      const u=DemoDB.users.find(x=>x.id===p.target_user);
+      if(u) u.penalty_points = DemoDB.penalties.filter(x=>x.target_user===u.id&&x.status==='approved')
+        .reduce((s,x)=>s+x.points,0);
+      if (u && u.id===S.me.id) S.me.penalty_points=u.penalty_points;
+      return;
+    }
+    const { error } = await sb.from('park_penalties')
+      .update({ status, admin_note, resolved_at:new Date().toISOString(), resolved_by:S.me.id }).eq('id',id);
+    if (error) throw new Error(prettyPgError(error));
+  },
+
+  /* ---- admin ---- */
+  async saveSetting(key, value){
+    if (DEMO){ DemoDB.settings[key]=value; S.settings[key]=value; return; }
+    const { error } = await sb.from('park_settings')
+      .upsert({ key, value, updated_at:new Date().toISOString() }, { onConflict:'key' });
+    if (error) throw new Error(prettyPgError(error));
+    S.settings[key]=value;
+  },
+  async saveUser(id, patch){
+    if (DEMO){ const u=DemoDB.users.find(x=>x.id===id); Object.assign(u,patch);
+      if(id===S.me.id) Object.assign(S.me,patch); return; }
+    const { error } = await sb.from('park_users').update(patch).eq('id',id);
+    if (error) throw new Error(prettyPgError(error));
+  },
+  async saveSpot(id, patch){
+    if (DEMO){ const s=DemoDB.spots.find(x=>x.id===id); Object.assign(s,patch);
+      const t=S.spots.find(x=>x.id===id); Object.assign(t,patch); return; }
+    const { error } = await sb.from('park_spots').update(patch).eq('id',id);
+    if (error) throw new Error(prettyPgError(error));
+  },
+  async allUpcoming(){
+    if (DEMO) return DemoDB.reservations.filter(r=>new Date(r.end)>new Date())
+      .sort((a,b)=>a.start.localeCompare(b.start)).map(r=>({...r}));
+    const { data, error } = await sb.from('park_reservations')
+      .select('id,spot_id,user_id,period,is_overnight')
+      .filter('period','sr',`[${new Date().toISOString()},infinity)`).limit(300);
+    if (error) throw error;
+    return data.map(r=>{const [s,e]=parseRange(r.period);return {...r,start:s,end:e};})
+      .sort((a,b)=>a.start.localeCompare(b.start));
+  },
+};
+
+function prettyPgError(error){
+  const m = error.message || String(error);
+  if (/park_reservations_no_overlap/.test(m)) return 'Někdo si mezitím zabral stejný slot. Zkuste to znovu.';
+  if (/row-level security/i.test(m)) return 'K této akci nemáte oprávnění.';
+  // Zprávy z našich triggerů chodí česky — ty ukážeme rovnou.
+  return m.replace(/^.*?:\s*/, '').trim() || m;
+}
+
+/* =====================================================================
+   START
+   ===================================================================== */
+let booting = false;
+async function boot(){
+  if (booting) return;
+  booting = true;
+  try { await bootInner(); } finally { booting = false; }
+}
+
+async function bootInner(){
+  if (DEMO){
+    $('#demo-banner').classList.remove('hidden');
+    $('#demo-banner').innerHTML = '<b>Ukázkový režim.</b> Aplikace běží s testovacími daty v prohlížeči — '
+      + 'nic se neukládá. Doplňte <code>CONFIG.url</code> a <code>CONFIG.anonKey</code> v hlavičce souboru '
+      + 'a přepne se na ostrý provoz.';
+  }
+  let user = null;
+  try { user = await API.currentUser(); }
+  catch(e){ console.error(e); toast(e.message||'Chyba načtení profilu','err'); }
+
+  if (!user){ show('auth'); return; }
+  S.me = user;
+
+  const base = await API.loadBase();
+  S.settings = base.settings; S.spots = base.spots;
+  S.usersById = Object.fromEntries(base.users.map(u=>[u.id,u]));
+  S.usersById[S.me.id] = S.me;
+
+  if (S.me.must_change_password){ show('pw'); return; }
+  if (!S.me.full_name || !(S.me.plates||[]).length){ show('onboard'); return; }
+  show('app');
+  await refreshWeek();
+  render();
+}
+
+function show(which){
+  $('#auth-screen').classList.toggle('hidden', which!=='auth');
+  $('#pw-screen').classList.toggle('hidden', which!=='pw');
+  $('#onboard-screen').classList.toggle('hidden', which!=='onboard');
+  $('#app-screen').classList.toggle('hidden', which!=='app');
+}
+
+async function refreshWeek(){
+  try { S.reservations = await API.loadWeek(S.week); }
+  catch(e){ toast(prettyPgError(e),'err'); S.reservations=[]; }
+}
+
+/* ---- přihlášení e-mailem a heslem ---- */
+function loginMsg(text, isError=false){
+  const m = $('#login-msg');
+  m.textContent = text || '';
+  m.style.color = isError ? 'var(--danger)' : 'var(--muted)';
+}
+
+async function doLogin(){
+  const email = $('#login-email').value.trim().toLowerCase();
+  const pass  = $('#login-pass').value;
+  if (!email.endsWith('@'+CONFIG.emailDomain)){
+    loginMsg(`Přihlásit se lze pouze e-mailem @${CONFIG.emailDomain}.`, true); return;
+  }
+  if (!pass){ loginMsg('Zadejte heslo.', true); return; }
+  const btn = $('#login-btn'); btn.disabled = true; btn.textContent = 'Přihlašuji…';
+  loginMsg('');
+  try{
+    await API.signIn(email, pass);
+    $('#login-pass').value = '';
+    await boot();
+  }catch(e){ loginMsg(e.message || 'Přihlášení se nezdařilo.', true); }
+  finally{ btn.disabled=false; btn.textContent='Přihlásit se'; }
+}
+
+$('#login-btn').addEventListener('click', doLogin);
+for (const id of ['#login-email','#login-pass'])
+  $(id).addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+
+/* ---- vynucená změna hesla po založení účtu ---- */
+$('#pw-save').addEventListener('click', async ()=>{
+  const a = $('#pw-new').value, b = $('#pw-new2').value;
+  const msg = $('#pw-msg');
+  const fail = (t)=>{ msg.textContent=t; msg.style.color='var(--danger)'; };
+  if (a.length < 8) return fail('Heslo musí mít alespoň 8 znaků.');
+  if (a !== b)      return fail('Hesla se neshodují.');
+  const btn = $('#pw-save'); btn.disabled = true; btn.textContent = 'Ukládám…';
+  msg.textContent='';
+  try{
+    await API.changeOwnPassword(a);
+    S.me.must_change_password = false;
+    $('#pw-new').value=''; $('#pw-new2').value='';
+    toast('Heslo nastaveno','ok');
+    await boot();
+  }catch(e){ fail(e.message || 'Uložení se nezdařilo.'); }
+  finally{ btn.disabled=false; btn.textContent='Uložit heslo'; }
+});
+
+/* ---- onboarding ---- */
+$('#ob-save').addEventListener('click', async ()=>{
+  const name = $('#ob-name').value.trim();
+  const plates = $('#ob-plates').value.split(',').map(normPlate).filter(Boolean);
+  if (!name) return toast('Doplňte prosím jméno.','err');
+  if (!plates.length) return toast('Doplňte alespoň jednu SPZ.','err');
+  try{
+    S.me = await API.updateProfile({ full_name:name, plates, phone:$('#ob-phone').value.trim() });
+    S.usersById[S.me.id]=S.me;
+    show('app'); await refreshWeek(); render();
+  }catch(e){ toast(prettyPgError(e),'err'); }
+});
+$('#signout').addEventListener('click', ()=>API.signOut());
+
+/* =====================================================================
+   NAVIGACE
+   ===================================================================== */
+const ICONS = {
+  lot:'<path d="M4 20V8.5a2 2 0 0 1 1.1-1.8l6-3a2 2 0 0 1 1.8 0l6 3A2 2 0 0 1 20 8.5V20"/><path d="M2 20h20"/><path d="M9 16V9h3.2a2.4 2.4 0 0 1 0 4.8H9"/>',
+  mine:'<rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M8 2.5v4M16 2.5v4M3 10h18"/><path d="m9 15 2 2 4-4"/>',
+  report:'<path d="M12 9v4.5M12 17h.01"/><path d="M10.3 3.9 1.9 18.3A2 2 0 0 0 3.6 21h16.8a2 2 0 0 0 1.7-2.7L13.7 3.9a2 2 0 0 0-3.4 0Z"/>',
+  me:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  admin:'<path d="M12 2 4 5.5V11c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5.5Z"/><path d="m9 12 2 2 4-4"/>',
+};
+function tabs(){
+  const t = [
+    {id:'lot',    label:'Parkoviště'},
+    {id:'mine',   label:'Rezervace'},
+    {id:'report', label:'Nahlásit'},
+    {id:'me',     label:'Profil'},
+  ];
+  if (isAdmin()) t.push({id:'admin', label:'Správa'});
+  return t;
+}
+function renderNav(){
+  const mk = (t, mobile) => el('button',{
+      'aria-current': String(S.tab===t.id),
+      onclick:()=>{ S.tab=t.id; S.selection.clear(); render(); window.scrollTo({top:0}); }},
+    mobile ? el('span',{html:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${ICONS[t.id]}</svg>`}) : null,
+    t.label);
+  $('#nav-desk').replaceChildren(...tabs().map(t=>mk(t,false)));
+  $('#tabbar').replaceChildren(...tabs().map(t=>mk(t,true)));
+}
+
+function render(){
+  renderNav();
+  const v = $('#view');
+  v.replaceChildren(
+    S.tab==='lot'    ? viewLot()    :
+    S.tab==='mine'   ? viewMine()   :
+    S.tab==='report' ? viewReport() :
+    S.tab==='me'     ? viewProfile():
+                       viewAdmin()
+  );
+}
+
+/* =====================================================================
+   POHLED: PARKOVIŠTĚ
+   ===================================================================== */
+function occupancy(spotId, dayIdx, hour){
+  const start = slotStart(addDays(S.week,dayIdx), hour).getTime();
+  const end   = start + 3600e3;
+  for (const r of S.reservations){
+    if (r.spot_id!==spotId) continue;
+    if (new Date(r.start).getTime() < end && start < new Date(r.end).getTime()) return r;
+  }
+  return null;
+}
+
+function weekLabel(){
+  const a=S.week, b=addDays(S.week,4);
+  const now=mondayOf(new Date());
+  const rel = a.getTime()===now.getTime() ? 'Tento týden'
+            : a.getTime()===addDays(now,7).getTime() ? 'Příští týden'
+            : a.getTime()===addDays(now,-7).getTime() ? 'Minulý týden' : null;
+  return (rel? rel+' · ' : '') + `${a.getDate()}. ${a.getMonth()+1}. – ${b.getDate()}. ${b.getMonth()+1}. ${b.getFullYear()}`;
+}
+
+function viewLot(){
+  const wrap = el('div');
+
+  const used = S.reservations.filter(r=>r.user_id===S.me.id)
+    .reduce((s,r)=>s.add(ymd(new Date(r.start))), new Set()).size;
+  const lim  = effectiveLimit();
+  const pips = el('div',{class:'pips'}, Array.from({length:Math.max(lim,used)},(_,i)=>
+    el('span',{class:'pip'+(i<used?' used':'')})));
+
+  wrap.append(el('div',{class:'weekbar'},
+    el('div',{class:'nav'},
+      el('button',{title:'Předchozí týden', onclick:async()=>{S.week=addDays(S.week,-7);S.selection.clear();await refreshWeek();render();}},'‹'),
+      el('button',{title:'Následující týden', onclick:async()=>{S.week=addDays(S.week,7);S.selection.clear();await refreshWeek();render();}},'›')),
+    el('div',{class:'label'}, weekLabel()),
+    !sameWeek(S.week,new Date()) && el('button',{class:'btn sm ghost',
+      onclick:async()=>{S.week=mondayOf(new Date());await refreshWeek();render();}},'Dnes'),
+    el('div',{class:'tokens'}, pips, el('span',{class:'muted'}, `${Math.max(lim-used,0)} z ${lim} dnů volných`))
+  ));
+
+  if (S.me.penalty_points > 0){
+    const block = Number(setting('penalty_block_threshold',20));
+    wrap.append(el('div',{class:'banner'},
+      `Máte ${S.me.penalty_points} trestných bodů. `
+      + (S.me.penalty_points>=block
+          ? 'Rezervace jsou pozastaveny — ozvěte se správci.'
+          : `Týdenní limit se vám tím snížil na ${lim} ${lim===1?'den':lim<5?'dny':'dnů'}.`)));
+  }
+
+  const left  = S.spots.filter(s=>s.zone==='levý pruh');
+  const right = S.spots.filter(s=>s.zone!=='levý pruh');
+
+  // Plánek kopíruje skutečné rozmístění: nahoře vlevo vstup do budovy,
+  // pod ním podélná stání 8–10, vpravo kolmá stání 1–7 u zdi,
+  // vlevo dole vjezd, který je zároveň výjezdem.
+  wrap.append(el('div',{class:'lot'},
+    el('div',{class:'lot-badge'}, 'Vstup do budovy'),
+    el('div',{class:'lot-rows'},
+      el('div',{class:'lane-wall'}, ...left.map(s=>spotCard(s,'wall'))),
+      el('div',{class:'lane-perp'}, ...right.map(s=>spotCard(s,'perp')))),
+    el('div',{class:'lot-badge exit'}, '⇅ Vjezd i výjezd')));
+
+  wrap.append(el('div',{class:'legend'},
+    el('span',{},el('i',{style:'background:var(--free-bg);border:1px solid var(--free-line)'}),'volno'),
+    el('span',{},el('i',{style:'background:var(--taken-bg);border:1px solid var(--taken-line)'}),'obsazeno'),
+    el('span',{},el('i',{style:'background:var(--mine-bg);border:1px solid var(--mine-line)'}),'vaše rezervace'),
+    el('span',{},el('i',{style:'background:var(--surface-2);border:1px solid var(--line)'}),'mimo provoz / minulost')));
+
+  return wrap;
+}
+
+/**
+ * Dlaždice jednoho místa v plánku.
+ *   kind 'wall' = podélné stání u budovy (úzké a vysoké),
+ *   kind 'perp' = kolmé stání u zdi (nízké a kratší, zarovnané ke zdi).
+ * Podrobný kalendář se otevře kliknutím, proto na dlaždici stačí číslo
+ * a počet volných hodin.
+ */
+function spotCard(spot, kind){
+  const H = hours();
+  let free = 0, total = 0, mine = false;
+  for (let d=0; d<5; d++){
+    for (const h of H){
+      const past = slotStart(addDays(S.week,d),h).getTime()+3600e3 < Date.now();
+      const r = occupancy(spot.id,d,h);
+      if (r && r.user_id===S.me.id) mine = true;
+      if (spot.is_blocked || past) continue;   // proběhlé hodiny se do poměru nepočítají
+      total++; if (!r) free++;
+    }
+  }
+
+  let cls = 'free';
+  if (spot.is_blocked || total===0) cls = 'off';
+  else if (free===0)                cls = 'full';
+  else if (free/total < 0.34)       cls = 'part';
+
+  const state = spot.is_blocked ? 'mimo provoz'
+              : total===0       ? 'týden proběhl'
+              : kind==='wall'   ? free+' h'
+              :                   free+' volných h';
+
+  return el('button',{
+      class:`spot ${kind} ${cls}`,
+      title:`Místo ${spot.label}${spot.note?' – '+spot.note:''} · ${state}`,
+      onclick:()=>openSpot(spot.id)},
+    el('div',{class:'spot-no'}, spot.label),
+    el('div',{class:'spot-state'}, state),
+    mine && el('span',{class:'spot-mine'},'moje'));
+}
+
+/* =====================================================================
+   DETAIL MÍSTA + REZERVACE
+   ===================================================================== */
+const key = (s,d,h)=>`${s}|${d}|${h}`;
+
+function openSpot(spotId){
+  S.openSpot = spotId; S.selection.clear(); renderSheet();
+}
+function closeSheet(){ S.openSpot=null; S.selection.clear(); $('#sheet-root').replaceChildren(); }
+
+function renderSheet(){
+  const spot = S.spots.find(s=>s.id===S.openSpot);
+  if (!spot) return;
+  const H = hours();
+  const overnightOn = String(setting('allow_overnight',true))==='true' || setting('allow_overnight',true)===true;
+
+  const table = el('table',{class:'grid'});
+  const head = el('tr',{}, el('th',{class:'day'},''));
+  for (const h of H) head.append(el('th',{}, String(h)));
+  if (overnightOn) head.append(el('th',{},'noc'));
+  table.append(head);
+
+  for (let d=0; d<5; d++){
+    const date = addDays(S.week,d);
+    const tr = el('tr',{});
+    tr.append(el('td',{class:'day'}, DAY_NAMES[d], el('small',{}, dm(date))));
+    const cols = overnightOn ? [...H, dayEnd()] : H;
+    for (const h of cols){
+      const isNight = h===dayEnd();
+      const start = slotStart(date,h);
+      const end   = isNight ? slotStart(addDays(date,1), dayStart()) : new Date(start.getTime()+3600e3);
+      const past  = end.getTime() < Date.now();
+      const r     = occupancy(spot.id,d,h);
+      const k     = key(spot.id,d,h);
+      const sel   = S.selection.has(k);
+
+      let cls='cell', label='', disabled=false;
+      if (spot.is_blocked){ cls+=' blocked'; label='—'; disabled=true; }
+      else if (past){ cls+=' past'; disabled=true; if (r) label = r.user_id===S.me.id ? 'vy' : shortName(S.usersById[r.user_id]); }
+      else if (r && r.user_id===S.me.id){ cls+=' mine'; label='vy'; }
+      else if (r){ cls+=' taken'; label=shortName(S.usersById[r.user_id]); disabled=true; }
+      if (sel) cls+=' sel';
+
+      tr.append(el('td',{}, el('button',{
+        class: cls, disabled: disabled||false,
+        title: isNight ? `přes noc ${dm(date)} 16:00 → ${dm(addDays(date,1))} 7:00`
+                       : `${DAY_FULL[d]} ${dm(date)} ${h}:00–${h+1}:00`,
+        onclick: ()=>{
+          if (r && r.user_id===S.me.id && !past){ askCancel(r); return; }
+          S.selection.has(k) ? S.selection.delete(k) : S.selection.add(k);
+          renderSheet();
+        }},
+        sel ? '✓' : (isNight ? '🌙' : el('span',{class:'who'}, label)))));
+    }
+    // tlačítko "celý den"
+    const freeAll = H.filter(h=>!occupancy(spot.id,d,h) && slotStart(date,h).getTime()+3600e3>Date.now());
+    tr.append(el('td',{}, el('button',{class:'btn sm ghost', style:'white-space:nowrap',
+      disabled: spot.is_blocked || freeAll.length===0,
+      onclick:()=>{
+        const allSel = freeAll.every(h=>S.selection.has(key(spot.id,d,h)));
+        for (const h of freeAll){ allSel ? S.selection.delete(key(spot.id,d,h)) : S.selection.add(key(spot.id,d,h)); }
+        renderSheet();
+      }}, 'celý den')));
+    table.append(tr);
+  }
+
+  const n = S.selection.size;
+  const sheet = el('div',{class:'sheet-back', onclick:e=>{ if(e.target===e.currentTarget) closeSheet(); }},
+    el('div',{class:'sheet'},
+      el('div',{class:'sheet-head'},
+        el('div',{class:'spot-no'}, spot.label),
+        el('div',{},
+          el('h2',{style:'font-size:18px'},'Místo '+spot.label),
+          el('div',{class:'small muted'}, weekLabel())),
+        el('div',{style:'flex:1'}),
+        el('button',{class:'btn sm ghost', onclick:closeSheet},'Zavřít')),
+      el('div',{class:'sheet-body'},
+        spot.is_blocked ? el('div',{class:'banner'},
+          'Místo je mimo provoz'+(spot.block_note?': '+spot.block_note:'.')) : null,
+        el('div',{class:'grid-wrap'}, table),
+        el('div',{class:'legend'},
+          el('span',{},'Klikněte na volné hodiny a potvrďte rezervaci.'),
+          el('span',{},'Vlastní rezervaci zrušíte kliknutím na modré políčko.'))),
+      el('div',{class:'sheet-foot'},
+        el('div',{class:'small'}, n ? `Vybráno ${n} ${n===1?'slot':n<5?'sloty':'slotů'}` : 'Nic nevybráno',
+          el('div',{class:'muted'}, `Zbývá ${Math.max(effectiveLimit()-daysUsedThisWeek(),0)} z ${effectiveLimit()} dnů`)),
+        el('div',{style:'flex:1'}),
+        n ? el('button',{class:'btn sm ghost', onclick:()=>{S.selection.clear();renderSheet();}},'Zrušit výběr') : null,
+        el('button',{class:'btn primary', disabled:!n, onclick:e=>confirmReservation(e)},'Potvrdit rezervaci'))));
+
+  $('#sheet-root').replaceChildren(sheet);
+}
+
+function buildRanges(){
+  const bySpotDay = {};
+  for (const k of S.selection){
+    const [s,d,h] = k.split('|').map(Number);
+    (bySpotDay[`${s}|${d}`] ||= []).push(h);
+  }
+  const out=[];
+  for (const [sd, hs] of Object.entries(bySpotDay)){
+    const [spot_id, d] = sd.split('|').map(Number);
+    const date = addDays(S.week,d);
+    const night = hs.includes(dayEnd());
+    const day   = hs.filter(h=>h!==dayEnd()).sort((a,b)=>a-b);
+    let i=0;
+    while (i<day.length){
+      let j=i; while (j+1<day.length && day[j+1]===day[j]+1) j++;
+      out.push({ spot_id, start:slotStart(date,day[i]), end:slotStart(date,day[j]+1), is_overnight:false });
+      i=j+1;
+    }
+    if (night) out.push({ spot_id, start:slotStart(date,dayEnd()),
+      end:slotStart(addDays(date,1),dayStart()), is_overnight:true });
+  }
+  // Navazuje-li noční na denní rezervaci, spojíme je do jedné
+  const merged=[];
+  for (const r of out.sort((a,b)=>a.spot_id-b.spot_id || a.start-b.start)){
+    const last = merged[merged.length-1];
+    if (last && last.spot_id===r.spot_id && last.end.getTime()===r.start.getTime()){
+      last.end = r.end; last.is_overnight = last.is_overnight || r.is_overnight;
+    } else merged.push({...r});
+  }
+  return merged;
+}
+
+async function confirmReservation(ev){
+  const items = buildRanges();
+  if (!items.length) return;
+  const btn = ev?.currentTarget; if (btn){ btn.disabled=true; btn.textContent='Rezervuji…'; }
+  try{
+    const made = await API.createReservations(items);
+    await refreshWeek();
+    S.selection.clear();
+    closeSheet(); render();
+    toast(`Rezervováno · ${items.length}×`, 'ok');
+  }catch(e){
+    toast(prettyPgError(e),'err');
+    await refreshWeek(); renderSheet();
+  }
+}
+
+async function askCancel(r){
+  const spot = S.spots.find(s=>s.id===r.spot_id);
+  const when = `${dm(new Date(r.start))} ${new Date(r.start).getHours()}:00–${new Date(r.end).getHours()}:00`;
+  if (!confirm(`Zrušit rezervaci místa ${spot?.label} — ${when}?`)) return;
+  try{
+    await API.cancelReservations([r.id]);
+    await refreshWeek();
+    if (S.openSpot) renderSheet();
+    render(); toast('Rezervace zrušena','ok');
+  }catch(e){ toast(prettyPgError(e),'err'); }
+}
+
+/* =====================================================================
+   POHLED: MOJE REZERVACE
+   ===================================================================== */
+function resLine(r){
+  const s=new Date(r.start), e=new Date(r.end);
+  const hh = d=>`${String(d.getHours()).padStart(2,'0')}:00`;
+  const wd = d=>DAY_FULL[(d.getDay()+6)%7] || '';
+  const crossDay = ymd(s)!==ymd(e);
+  return {
+    title: `Místo ${S.spots.find(x=>x.id===r.spot_id)?.label ?? r.spot_id}`,
+    sub: crossDay
+      ? `${wd(s)} ${dm(s)} ${hh(s)} → ${wd(e)} ${dm(e)} ${hh(e)}` + (r.is_overnight?' · přes noc':'')
+      : `${wd(s)} ${dm(s)} · ${hh(s)}–${hh(e)}`
+  };
+}
+
+function viewMine(){
+  const wrap = el('div');
+  wrap.append(el('h2',{style:'font-size:20px;margin-bottom:4px'},'Moje rezervace'),
+    el('p',{class:'muted small',style:'margin:0 0 16px'},'Nadcházející rezervace. Zrušit je můžete kdykoli.'));
+  const box = el('div',{class:'card divide'});
+  wrap.append(box);
+  box.append(el('div',{class:'empty'},'Načítám…'));
+
+  API.myReservations().then(list=>{
+    if (!list.length){
+      box.replaceChildren(el('div',{class:'empty'},
+        el('div',{class:'big'},'🅿️'),
+        el('div',{},'Zatím žádná rezervace.'),
+        el('button',{class:'btn sm',style:'margin-top:14px',
+          onclick:()=>{S.tab='lot';render();}},'Vybrat místo')));
+      return;
+    }
+    box.replaceChildren(...list.map(r=>{
+      const L = resLine(r);
+      return el('div',{class:'item'},
+        el('div',{class:'spot-no'}, S.spots.find(x=>x.id===r.spot_id)?.label ?? r.spot_id),
+        el('div',{class:'grow'}, el('b',{},L.title), el('div',{class:'sub'},L.sub)),
+        el('button',{class:'btn sm danger', onclick:()=>askCancel(r)},'Zrušit'));
+    }));
+  }).catch(e=>box.replaceChildren(el('div',{class:'empty'}, prettyPgError(e))));
+
+  return wrap;
+}
+
+/* =====================================================================
+   POHLED: NAHLÁSIT ŠPATNÉ PARKOVÁNÍ
+   ===================================================================== */
+function viewReport(){
+  const wrap = el('div');
+  wrap.append(el('h2',{style:'font-size:20px;margin-bottom:4px'},'Nahlásit špatné parkování'),
+    el('p',{class:'muted small',style:'margin:0 0 16px'},
+      'Hlášení posuzuje správce — body se připisují až po jeho schválení. Nahlášený se o hlášení dozví.'));
+
+  const plate = el('input',{class:'input', placeholder:'1AB 2345', autocapitalize:'characters'});
+  const reason= el('textarea',{class:'input', rows:'3', placeholder:'Např. stál přes dvě místa, blokoval vjezd…'});
+  const points= el('select',{class:'input'},
+    el('option',{value:'3'},'3 body — drobnost (nepřesně v čáře)'),
+    el('option',{value:'5', selected:'selected'},'5 bodů — přes dvě místa / cizí místo'),
+    el('option',{value:'10'},'10 bodů — blokoval vjezd nebo východ'));
+  const when = el('input',{class:'input', type:'date', value: ymd(new Date()), max: ymd(new Date())});
+
+  const btn = el('button',{class:'btn primary', style:'width:100%', onclick: async ()=>{
+    if (!normPlate(plate.value)) return toast('Zadejte SPZ.','err');
+    btn.disabled=true; btn.textContent='Odesílám…';
+    try{
+      const r = await API.reportPlate({ plate:plate.value, reason:reason.value.trim(),
+        points:Number(points.value), occurred_at:new Date(when.value+'T12:00:00').toISOString() });
+      plate.value=''; reason.value='';
+      toast(r.target_user ? 'Hlášení odesláno správci ke schválení.'
+                          : 'Odesláno. SPZ zatím není v databázi — správce ji dohledá.','ok');
+      render();
+    }catch(e){ toast(prettyPgError(e),'err'); }
+    finally{ btn.disabled=false; btn.textContent='Odeslat hlášení'; }
+  }},'Odeslat hlášení');
+
+  wrap.append(el('div',{class:'card pad'},
+    el('label',{class:'field'}, el('span',{},'SPZ vozidla'), plate),
+    el('label',{class:'field'}, el('span',{},'Kdy'), when),
+    el('label',{class:'field'}, el('span',{},'Závažnost'), points),
+    el('label',{class:'field'}, el('span',{},'Popis (nepovinné)'), reason),
+    btn));
+
+  const mine = el('div',{class:'card divide',style:'margin-top:14px'});
+  wrap.append(el('div',{class:'sect-title'},'Vaše hlášení a hlášení na vás'), mine);
+  mine.append(el('div',{class:'empty small'},'Načítám…'));
+  API.listPenalties().then(list=>{
+    const rel = list.filter(p=>p.reported_by===S.me.id || p.target_user===S.me.id);
+    if (!rel.length) return mine.replaceChildren(el('div',{class:'empty small'},'Nic tu zatím není.'));
+    mine.replaceChildren(...rel.map(p=>penaltyRow(p,false)));
+  }).catch(()=>mine.replaceChildren(el('div',{class:'empty small'},'Nepodařilo se načíst.')));
+
+  return wrap;
+}
+
+function penaltyRow(p, admin){
+  const st = {pending:['tag','čeká na posouzení'], approved:['tag red','schváleno'], rejected:['tag','zamítnuto']}[p.status];
+  const target = p.target_user ? S.usersById[p.target_user] : null;
+  return el('div',{class:'item'},
+    el('div',{class:'grow'},
+      el('b',{}, fmtPlate(p.plate) + (target? ` · ${target.full_name||target.email}` : ' · nespárováno')),
+      el('div',{class:'sub'}, `${new Date(p.occurred_at).toLocaleDateString('cs-CZ')} · ${p.points} b.`
+        + (p.reason? ' · '+p.reason : ''))),
+    el('span',{class:st[0]}, st[1]),
+    admin && p.status==='pending' ? el('div',{class:'row'},
+      el('button',{class:'btn sm', onclick:async()=>{
+        try{ await API.resolvePenalty(p.id,'approved'); toast('Schváleno','ok'); render(); }
+        catch(e){ toast(prettyPgError(e),'err'); }}},'Schválit'),
+      el('button',{class:'btn sm ghost', onclick:async()=>{
+        try{ await API.resolvePenalty(p.id,'rejected'); toast('Zamítnuto'); render(); }
+        catch(e){ toast(prettyPgError(e),'err'); }}},'Zamítnout')) : null);
+}
+
+/* =====================================================================
+   POHLED: PROFIL
+   ===================================================================== */
+function viewProfile(){
+  const wrap = el('div');
+  const name  = el('input',{class:'input', value:S.me.full_name||''});
+  const plates= el('input',{class:'input', value:(S.me.plates||[]).map(fmtPlate).join(', ')});
+  const phone = el('input',{class:'input', value:S.me.phone||'', inputmode:'tel'});
+
+  wrap.append(el('h2',{style:'font-size:20px;margin-bottom:16px'},'Profil'));
+  wrap.append(el('div',{class:'card pad'},
+    el('div',{class:'row', style:'margin-bottom:16px'},
+      el('div',{class:'spot-no', style:'width:44px;height:44px;font-size:16px'}, initials(S.me.full_name,S.me.email)),
+      el('div',{}, el('b',{}, S.me.full_name||'—'), el('div',{class:'sub muted small'}, S.me.email)),
+      el('div',{style:'flex:1'}),
+      isAdmin()? el('span',{class:'tag'},'správce') : null),
+    el('label',{class:'field'}, el('span',{},'Jméno a příjmení'), name),
+    el('label',{class:'field'}, el('span',{},'SPZ (více oddělte čárkou)'), plates),
+    el('label',{class:'field'}, el('span',{},'Telefon'), phone),
+    el('button',{class:'btn primary', onclick:async(e)=>{
+      const b=e.currentTarget; b.disabled=true;
+      try{
+        S.me = await API.updateProfile({ full_name:name.value.trim(),
+          plates: plates.value.split(',').map(normPlate).filter(Boolean), phone:phone.value.trim() });
+        S.usersById[S.me.id]=S.me; toast('Uloženo','ok'); render();
+      }catch(err){ toast(prettyPgError(err),'err'); } finally{ b.disabled=false; }
+    }},'Uložit')));
+
+  const np1 = el('input',{class:'input', type:'password', autocomplete:'new-password'});
+  const np2 = el('input',{class:'input', type:'password', autocomplete:'new-password'});
+  wrap.append(el('div',{class:'sect-title'},'Heslo'));
+  wrap.append(el('div',{class:'card pad'},
+    el('label',{class:'field'}, el('span',{},'Nové heslo (alespoň 8 znaků)'), np1),
+    el('label',{class:'field'}, el('span',{},'Nové heslo znovu'), np2),
+    el('button',{class:'btn', onclick:async(e)=>{
+      if (np1.value.length<8) return toast('Heslo musí mít alespoň 8 znaků.','err');
+      if (np1.value!==np2.value) return toast('Hesla se neshodují.','err');
+      const b=e.currentTarget; b.disabled=true;
+      try{ await API.changeOwnPassword(np1.value); np1.value=''; np2.value='';
+        toast('Heslo změněno','ok'); }
+      catch(err){ toast(err.message||'Změna se nezdařila.','err'); }
+      finally{ b.disabled=false; }
+    }},'Změnit heslo')));
+
+  const lim = effectiveLimit();
+  wrap.append(el('div',{class:'sect-title'},'Vaše skóre'));
+  wrap.append(el('div',{class:'card pad'},
+    el('div',{class:'row'},
+      el('div',{class:'grow'}, el('b',{}, S.me.penalty_points+' trestných bodů'),
+        el('div',{class:'sub'}, S.me.penalty_points===0
+          ? 'Čistý štít — plný týdenní limit.'
+          : `Týdenní limit snížen na ${lim} ${lim===1?'den':lim<5?'dny':'dnů'}.`)),
+      el('span',{class: S.me.penalty_points>0?'tag red':'tag green'}, `${lim} dnů/týden`))));
+
+  wrap.append(el('div',{class:'sect-title'},'Jak to funguje'));
+  wrap.append(el('div',{class:'card pad small muted', style:'line-height:1.6'},
+    el('div',{},`• Rezervovat lze pracovní dny ${dayStart()}–${dayEnd()} h, nejvýše ${setting('max_days_ahead',21)} dní dopředu.`),
+    el('div',{},`• Týdenní limit je ${setting('weekly_day_limit',3)} rezervovaných dnů; délka rezervace v rámci dne se nepočítá.`),
+    el('div',{},`• Každých ${setting('penalty_points_per_slot',5)} trestných bodů ubere jeden den z týdenního limitu; od ${setting('penalty_block_threshold',20)} bodů se rezervace pozastaví.`),
+    el('div',{},'• Rezervaci prosím zrušte, pokud nepřijedete — místo se hned uvolní ostatním.')));
+
+  wrap.append(el('button',{class:'btn ghost', style:'margin-top:18px', onclick:()=>API.signOut()},'Odhlásit se'));
+  return wrap;
+}
+
+/* =====================================================================
+   POHLED: SPRÁVA (jen admin)
+   ===================================================================== */
+function viewAdmin(){
+  const wrap = el('div');
+  wrap.append(el('h2',{style:'font-size:20px;margin-bottom:16px'},'Správa'));
+
+  /* --- nastavení --- */
+  const numField = (label, k, def, hint) => {
+    const inp = el('input',{class:'input', type:'number', value:String(setting(k,def)), min:'0'});
+    inp.addEventListener('change', async ()=>{
+      try{ await API.saveSetting(k, Number(inp.value)); toast('Uloženo','ok'); }
+      catch(e){ toast(prettyPgError(e),'err'); }
+    });
+    return el('label',{class:'field'}, el('span',{}, label), inp,
+      hint? el('div',{class:'small muted', style:'margin-top:4px'}, hint):null);
+  };
+  const nightSel = el('select',{class:'input'},
+    el('option',{value:'true'},'Povoleno'), el('option',{value:'false'},'Zakázáno'));
+  nightSel.value = String(setting('allow_overnight',true));
+  nightSel.addEventListener('change', async ()=>{
+    try{ await API.saveSetting('allow_overnight', nightSel.value==='true'); toast('Uloženo','ok'); render(); }
+    catch(e){ toast(prettyPgError(e),'err'); }
+  });
+
+  wrap.append(el('div',{class:'sect-title'},'Pravidla rezervací'));
+  wrap.append(el('div',{class:'card pad'},
+    numField('Týdenní limit (počet dnů na osobu)','weekly_day_limit',3,
+      'Jeden den = jedna „známka“ bez ohledu na délku rezervace.'),
+    el('div',{class:'row', style:'gap:12px'},
+      el('div',{style:'flex:1'}, numField('Začátek dne','day_start_hour',7)),
+      el('div',{style:'flex:1'}, numField('Konec dne','day_end_hour',16))),
+    numField('Kolik dní dopředu lze rezervovat','max_days_ahead',21),
+    el('label',{class:'field'}, el('span',{},'Rezervace přes noc'), nightSel),
+    numField('Trestné body za jeden den limitu','penalty_points_per_slot',5,
+      'Např. 5 = každých 5 bodů ubere jeden rezervovatelný den v týdnu.'),
+    numField('Hranice úplného zablokování (body)','penalty_block_threshold',20)));
+
+  /* --- místa --- */
+  wrap.append(el('div',{class:'sect-title'},'Parkovací místa'));
+  const spotsBox = el('div',{class:'card divide'});
+  spotsBox.replaceChildren(...S.spots.map(sp=>el('div',{class:'item'},
+    el('div',{class:'spot-no'}, sp.label),
+    el('div',{class:'grow'}, el('b',{},'Místo '+sp.label),
+      el('div',{class:'sub'}, sp.is_blocked ? ('mimo provoz'+(sp.block_note?' — '+sp.block_note:'')) : (sp.zone||''))),
+    el('button',{class:'btn sm'+(sp.is_blocked?'':' ghost'), onclick:async()=>{
+      const on = !sp.is_blocked;
+      const note = on ? (prompt('Důvod (údržba, sníh, návštěva…)','údržba')??'') : '';
+      if (on && note===null) return;
+      try{ await API.saveSpot(sp.id,{is_blocked:on, block_note:note}); await refreshWeek(); render();
+        toast(on?'Místo zablokováno':'Místo uvolněno','ok'); }
+      catch(e){ toast(prettyPgError(e),'err'); }
+    }}, sp.is_blocked?'Uvolnit':'Zablokovat'))));
+  wrap.append(spotsBox);
+
+  /* --- hlášení --- */
+  wrap.append(el('div',{class:'sect-title'},'Hlášení špatného parkování'));
+  const pens = el('div',{class:'card divide'});
+  pens.append(el('div',{class:'empty small'},'Načítám…'));
+  API.listPenalties().then(list=>{
+    if(!list.length) return pens.replaceChildren(el('div',{class:'empty small'},'Žádná hlášení.'));
+    const sorted = [...list].sort((a,b)=> (a.status==='pending'?0:1)-(b.status==='pending'?0:1));
+    pens.replaceChildren(...sorted.map(p=>penaltyRow(p,true)));
+  }).catch(e=>pens.replaceChildren(el('div',{class:'empty small'},prettyPgError(e))));
+  wrap.append(pens);
+
+  /* --- uživatelé --- */
+  wrap.append(el('div',{class:'row', style:'margin:26px 0 10px'},
+    el('div',{class:'sect-title', style:'margin:0'},'Kantoři'),
+    el('div',{style:'flex:1'}),
+    el('button',{class:'btn sm primary', onclick:newUserSheet},'+ Přidat kantora')));
+  const users = el('div',{class:'card divide'});
+  users.replaceChildren(...Object.values(S.usersById)
+    .sort((a,b)=>(a.full_name||a.email).localeCompare(b.full_name||b.email,'cs'))
+    .map(u=>el('div',{class:'item'},
+      el('div',{class:'spot-no'}, initials(u.full_name,u.email)),
+      el('div',{class:'grow'},
+        el('b',{}, u.full_name||u.email),
+        el('div',{class:'sub'}, (u.plates||[]).map(fmtPlate).join(', ') || 'bez SPZ',
+          u.penalty_points? ` · ${u.penalty_points} b.` : '')),
+      u.role==='admin'? el('span',{class:'tag'},'správce'):null,
+      !u.is_active? el('span',{class:'tag red'},'neaktivní'):null,
+      el('button',{class:'btn sm ghost', onclick:()=>adminUserSheet(u)},'Upravit'))));
+  wrap.append(users);
+
+  /* --- všechny rezervace --- */
+  wrap.append(el('div',{class:'sect-title'},'Nadcházející rezervace'));
+  const all = el('div',{class:'card divide'});
+  all.append(el('div',{class:'empty small'},'Načítám…'));
+  API.allUpcoming().then(list=>{
+    if(!list.length) return all.replaceChildren(el('div',{class:'empty small'},'Žádné rezervace.'));
+    all.replaceChildren(...list.slice(0,80).map(r=>{
+      const L=resLine(r); const u=S.usersById[r.user_id];
+      return el('div',{class:'item'},
+        el('div',{class:'spot-no'}, S.spots.find(x=>x.id===r.spot_id)?.label ?? r.spot_id),
+        el('div',{class:'grow'}, el('b',{}, u?.full_name||u?.email||'—'), el('div',{class:'sub'},L.sub)),
+        el('button',{class:'btn sm danger', onclick:async()=>{
+          if(!confirm(`Zrušit rezervaci — ${u?.full_name||''}, ${L.sub}?`)) return;
+          try{ await API.cancelReservations([r.id]);
+            await refreshWeek(); render(); toast('Zrušeno','ok'); }
+          catch(e){ toast(prettyPgError(e),'err'); }}},'Zrušit'));
+    }));
+  }).catch(e=>all.replaceChildren(el('div',{class:'empty small'},prettyPgError(e))));
+  wrap.append(all);
+
+  return wrap;
+}
+
+function pwField(label, input, note){
+  const gen = el('button',{class:'btn sm', type:'button', style:'white-space:nowrap',
+    onclick:()=>{ input.value = makePassword(); input.type='text'; }},'Vygenerovat');
+  return el('label',{class:'field'}, el('span',{}, label),
+    el('div',{class:'row', style:'gap:8px'}, el('div',{style:'flex:1'}, input), gen),
+    note ? el('div',{class:'small muted', style:'margin-top:5px'}, note) : null);
+}
+
+function sheetShell(title, ...children){
+  const back = el('div',{class:'sheet-back', onclick:e=>{ if(e.target===e.currentTarget) $('#sheet-root').replaceChildren(); }},
+    el('div',{class:'sheet', style:'max-width:480px'},
+      el('div',{class:'sheet-head'}, el('h2',{style:'font-size:18px'}, title),
+        el('div',{style:'flex:1'}),
+        el('button',{class:'btn sm ghost', onclick:()=>$('#sheet-root').replaceChildren()},'Zavřít')),
+      el('div',{class:'sheet-body'}, ...children)));
+  $('#sheet-root').replaceChildren(back);
+}
+
+function newUserSheet(){
+  const email  = el('input',{class:'input', type:'email', placeholder:'jmeno.prijmeni@gjk.cz', autocomplete:'off'});
+  const name   = el('input',{class:'input', placeholder:'Jan Novák'});
+  const plates = el('input',{class:'input', placeholder:'1AB 2345, 4CD 5678'});
+  const phone  = el('input',{class:'input', inputmode:'tel', placeholder:'nepovinné'});
+  const pass   = el('input',{class:'input', type:'text', value: makePassword(), autocomplete:'off'});
+  const role   = el('select',{class:'input'}, el('option',{value:'teacher'},'kantor'), el('option',{value:'admin'},'správce'));
+  const done   = el('div',{class:'hidden'});
+
+  const save = el('button',{class:'btn primary', style:'width:100%', onclick:async()=>{
+    save.disabled=true; save.textContent='Zakládám…';
+    try{
+      await API.adminCall({ action:'create', email:email.value.trim().toLowerCase(),
+        password:pass.value, full_name:name.value.trim(), phone:phone.value.trim(),
+        plates: plates.value.split(',').map(normPlate).filter(Boolean), role: role.value });
+      const base = await API.loadBase();
+      S.usersById = Object.fromEntries(base.users.map(x=>[x.id,x]));
+      S.usersById[S.me.id] = S.me;
+      done.classList.remove('hidden');
+      done.replaceChildren(el('div',{class:'card pad', style:'background:var(--free-bg);border-color:var(--free-line);margin-bottom:16px'},
+        el('b',{},'Účet založen'),
+        el('div',{class:'small', style:'margin:8px 0 4px'},'Předejte kantorovi tyto údaje:'),
+        el('div',{style:'font-family:ui-monospace,monospace;font-size:15px;line-height:1.7;word-break:break-all'},
+          email.value.trim().toLowerCase(), el('br'), pass.value),
+        el('div',{class:'small muted', style:'margin-top:10px'},
+          'Při prvním přihlášení si nastaví vlastní heslo. Tady ho po zavření okna už neuvidíte.')));
+      email.value=''; name.value=''; plates.value=''; phone.value=''; pass.value=makePassword();
+      render();
+    }catch(e){ toast(e.message||'Založení se nezdařilo.','err'); }
+    finally{ save.disabled=false; save.textContent='Založit účet'; }
+  }},'Založit účet');
+
+  sheetShell('Nový kantor',
+    done,
+    el('label',{class:'field'}, el('span',{},'Školní e-mail'), email),
+    el('label',{class:'field'}, el('span',{},'Jméno a příjmení'), name),
+    el('label',{class:'field'}, el('span',{},'SPZ (více oddělte čárkou)'), plates),
+    el('label',{class:'field'}, el('span',{},'Telefon'), phone),
+    el('label',{class:'field'}, el('span',{},'Role'), role),
+    pwField('Počáteční heslo', pass, 'Zapište si ho — kantor si ho při prvním přihlášení změní.'),
+    save);
+}
+
+function adminUserSheet(u){
+  const newPass = el('input',{class:'input', type:'text', value: makePassword(), autocomplete:'off'});
+  const shown   = el('div',{class:'hidden'});
+  const name  = el('input',{class:'input', value:u.full_name||''});
+  const plates= el('input',{class:'input', value:(u.plates||[]).map(fmtPlate).join(', ')});
+  const pts   = el('input',{class:'input', type:'number', value:String(u.penalty_points||0), min:'0'});
+  const role  = el('select',{class:'input'}, el('option',{value:'teacher'},'kantor'), el('option',{value:'admin'},'správce'));
+  role.value = u.role;
+  const act   = el('select',{class:'input'}, el('option',{value:'true'},'aktivní'), el('option',{value:'false'},'deaktivovaný'));
+  act.value = String(u.is_active);
+
+  const back = el('div',{class:'sheet-back', onclick:e=>{ if(e.target===e.currentTarget) $('#sheet-root').replaceChildren(); }},
+    el('div',{class:'sheet', style:'max-width:480px'},
+      el('div',{class:'sheet-head'}, el('h2',{style:'font-size:18px'}, u.full_name||u.email),
+        el('div',{style:'flex:1'}),
+        el('button',{class:'btn sm ghost', onclick:()=>$('#sheet-root').replaceChildren()},'Zavřít')),
+      el('div',{class:'sheet-body'},
+        el('label',{class:'field'}, el('span',{},'Jméno'), name),
+        el('label',{class:'field'}, el('span',{},'SPZ'), plates),
+        el('label',{class:'field'}, el('span',{},'Role'), role),
+        el('label',{class:'field'}, el('span',{},'Stav účtu'), act),
+        el('label',{class:'field'}, el('span',{},'Trestné body'), pts,
+          el('div',{class:'small muted',style:'margin-top:4px'},'Ruční úprava; schválená hlášení body přepočítají.')),
+        u.must_change_password ? el('div',{class:'banner', style:'margin-bottom:12px'},
+          'Zatím se nepřihlásil a nezměnil si heslo.') : null,
+        el('button',{class:'btn primary', style:'width:100%', onclick:async(e)=>{
+          const b=e.currentTarget; b.disabled=true;
+          try{
+            const patch={ full_name:name.value.trim(),
+              plates:plates.value.split(',').map(normPlate).filter(Boolean),
+              role:role.value, is_active:act.value==='true', penalty_points:Number(pts.value)||0 };
+            await API.saveUser(u.id, patch);
+            Object.assign(S.usersById[u.id], patch);
+            if (u.id===S.me.id) Object.assign(S.me, patch);
+            $('#sheet-root').replaceChildren(); render(); toast('Uloženo','ok');
+          }catch(err){ toast(prettyPgError(err),'err'); } finally{ b.disabled=false; }
+        }},'Uložit'),
+
+        el('div',{class:'sect-title'},'Nové heslo'),
+        el('div',{class:'small muted', style:'margin:-4px 0 10px'},
+          'Použijte, když kantor heslo zapomněl. Po přihlášení si nastaví vlastní.'),
+        pwField('', newPass),
+        el('button',{class:'btn', style:'width:100%', onclick:async(e)=>{
+          if (newPass.value.length<8) return toast('Heslo musí mít alespoň 8 znaků.','err');
+          const b=e.currentTarget; b.disabled=true;
+          try{
+            await API.adminCall({ action:'set_password', user_id:u.id, password:newPass.value });
+            shown.classList.remove('hidden');
+            shown.replaceChildren(el('div',{class:'card pad', style:'margin-top:10px;background:var(--free-bg);border-color:var(--free-line)'},
+              el('div',{class:'small'},'Předejte kantorovi:'),
+              el('div',{style:'font-family:ui-monospace,monospace;font-size:15px;margin-top:4px'}, newPass.value)));
+            u.must_change_password = true;
+            if (S.usersById[u.id]) S.usersById[u.id].must_change_password = true;
+            toast('Heslo nastaveno','ok');
+          }catch(err){ toast(err.message||'Nastavení se nezdařilo.','err'); }
+          finally{ b.disabled=false; }
+        }},'Nastavit heslo'),
+        shown,
+
+        u.id!==S.me.id ? el('div',{},
+          el('div',{class:'sect-title'},'Zrušit účet'),
+          el('div',{class:'small muted', style:'margin:-4px 0 10px'},
+            'Smaže účet i všechny jeho rezervace. Nelze vrátit zpět.'),
+          el('button',{class:'btn danger', style:'width:100%', onclick:async(e)=>{
+            if (!confirm(`Opravdu smazat účet ${u.full_name||u.email} včetně všech rezervací?`)) return;
+            const b=e.currentTarget; b.disabled=true;
+            try{
+              await API.adminCall({ action:'delete', user_id:u.id });
+              delete S.usersById[u.id];
+              $('#sheet-root').replaceChildren();
+              await refreshWeek(); render(); toast('Účet smazán','ok');
+            }catch(err){ toast(err.message||'Smazání se nezdařilo.','err'); b.disabled=false; }
+          }},'Smazat účet')) : null
+      )));
+  $('#sheet-root').replaceChildren(back);
+}
+
+/* =====================================================================
+   Reakce na přihlášení přes magic link + start
+   ===================================================================== */
+if (!DEMO){
+  sb.auth.onAuthStateChange((ev)=>{
+    if (ev==='SIGNED_IN' || ev==='TOKEN_REFRESHED'){
+      setTimeout(()=>{ if(!S.me) boot(); }, 0);   // vyhýbáme se známému deadlocku supabase-js v2
+    }
+  });
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeSheet(); $('#sheet-root').replaceChildren(); } });
+
+boot().catch(e=>{ console.error(e); toast(e.message||'Chyba při startu','err'); show('auth'); });
+</script>
+</body>
+</html>

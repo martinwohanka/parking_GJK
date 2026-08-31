@@ -5,7 +5,14 @@ na mobilu i na počítači (responzivní rozhraní, žádná instalace). Kantoř
 rezervují konkrétní časové sloty na konkrétním místě, správce rezervace edituje
 a řeší trestné body za špatné parkování.
 
-**Nasazení na internet:** postup krok za krokem najdete v [NASAZENI.md](NASAZENI.md).
+> **Pozor – repozitář obsahuje dvě verze aplikace.**
+> - `web/index.html` – **ostrá verze** nasazená na školním webhostingu. Jeden
+>   soubor nad databází Supabase (schéma a serverová funkce jsou v `supabase/`).
+>   Návod: [`web/NAVOD.md`](web/NAVOD.md).
+> - Zbytek repozitáře (`src/`, `prisma/`) – starší verze postavená na Next.js
+>   a vlastní databázi. Zatím ponechána, viz [NASAZENI.md](NASAZENI.md).
+>
+> Níže popsané příkazy (`npm run setup`, `npm run dev`) se týkají verze Next.js.
 
 ## Co aplikace umí
 

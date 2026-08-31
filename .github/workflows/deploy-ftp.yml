@@ -1,0 +1,46 @@
+# Nahraje aplikaci (složku web/) na FTP webhostingu při každé změně.
+#
+# Než to začne fungovat, přidejte v GitHubu tři tajné údaje:
+#   Settings → Secrets and variables → Actions → New repository secret
+#     FTP_SERVER    např. ftp.gjk.cz
+#     FTP_USERNAME  přihlašovací jméno k FTP
+#     FTP_PASSWORD  heslo k FTP
+#   a jednu proměnnou (záložka Variables):
+#     FTP_DIR       cílová složka na serveru, např. ./www/parkoviste/
+#
+# Dokud FTP_SERVER chybí, běh se přeskočí a nic nespadne.
+name: Nasazení na FTP
+
+on:
+  push:
+    branches: ['**']
+    paths: ['web/**', '.github/workflows/deploy-ftp.yml']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Zjistit, zda je FTP nastavené
+        id: check
+        run: |
+          if [ -n "${{ secrets.FTP_SERVER }}" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "FTP zatím není nastavené – přeskakuji. Doplňte tajné údaje v Settings → Secrets." 
+          fi
+
+      - name: Nahrát na FTP
+        if: steps.check.outputs.ready == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./web/
+          server-dir: ${{ vars.FTP_DIR || './' }}
+          exclude: |
+            **/NAVOD.md
