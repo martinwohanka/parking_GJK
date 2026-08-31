@@ -162,6 +162,7 @@ nav.tabbar svg{width:21px;height:21px;stroke-width:1.7}
 .spot.off  .spot-no{color:var(--muted)}
 .spot-state{font-size:10px;font-weight:650;line-height:1.15;color:var(--muted)}
 .spot.perp .spot-state{margin-left:auto}
+.warn-text{color:var(--danger);font-weight:600}
 .spot-mine{font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
   background:var(--mine-line);color:var(--mine-text);border-radius:4px;padding:1px 4px}
 
@@ -1066,6 +1067,18 @@ function renderSheet(){
   const H = hours();
   const overnightOn = String(setting('allow_overnight',true))==='true' || setting('allow_overnight',true)===true;
 
+  // Limit hlídá databáze, ale uživateli je vlídnější říct to hned – a když
+  // by pravidlo v databázi chybělo, aplikace ho aspoň neobejde bezmyšlenkovitě.
+  const limit          = effectiveLimit();
+  const blockAt        = Number(setting('penalty_block_threshold', 20));
+  const blockedByPoints = !hasNoLimit() && S.me.penalty_points >= blockAt;
+  const overLimit      = !hasNoLimit() && daysUsedThisWeek() > limit;
+  const limitNote =
+      blockedByPoints ? `Máte ${S.me.penalty_points} trestných bodů — rezervace jsou pozastaveny.`
+    : hasNoLimit()    ? 'Na správce se týdenní limit nevztahuje.'
+    : overLimit       ? `Překročili byste týdenní limit ${dnyGen(limit)}. Odeberte některý den z výběru.`
+    :                   `Zbývá ${Math.max(limit - daysUsedThisWeek(), 0)} z ${dnyGen(limit)}`;
+
   const table = el('table',{class:'grid'});
   const head = el('tr',{}, el('th',{class:'day'},''));
   for (const h of H) head.append(el('th',{}, String(h)));
@@ -1135,12 +1148,11 @@ function renderSheet(){
           el('span',{},'Vlastní rezervaci zrušíte kliknutím na modré políčko.'))),
       el('div',{class:'sheet-foot'},
         el('div',{class:'small'}, n ? `Vybráno ${n} ${n===1?'slot':n<5?'sloty':'slotů'}` : 'Nic nevybráno',
-          el('div',{class:'muted'}, hasNoLimit()
-            ? 'Na správce se týdenní limit nevztahuje.'
-            : `Zbývá ${Math.max(effectiveLimit()-daysUsedThisWeek(),0)} z ${dnyGen(effectiveLimit())}`)),
+          el('div',{class: overLimit || blockedByPoints ? 'warn-text' : 'muted'}, limitNote)),
         el('div',{style:'flex:1'}),
         n ? el('button',{class:'btn sm ghost', onclick:()=>{S.selection.clear();renderSheet();}},'Zrušit výběr') : null,
-        el('button',{class:'btn primary', disabled:!n, onclick:e=>confirmReservation(e)},'Potvrdit rezervaci'))));
+        el('button',{class:'btn primary', disabled: !n || overLimit || blockedByPoints,
+          onclick:e=>confirmReservation(e)},'Potvrdit rezervaci'))));
 
   $('#sheet-root').replaceChildren(sheet);
 }

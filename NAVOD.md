@@ -257,6 +257,24 @@ omylem může založit rezervaci na sobotu nebo na loňský týden a nic ho
 nezastaví. Kdyby měl limit platit i pro správce, stačí v `schema.sql` v
 triggeru `park_check_reservation` zrušit podmínku `if v_is_admin ...`.
 
+## Když limit nehlídá
+
+Aplikace ukazuje, kolik dnů zbývá, ale samotné pravidlo vynucuje databáze —
+trigger `park_check_reservation`. Když ten v databázi chybí nebo je vypnutý,
+aplikace sice odpočítává, ale rezervace se zakládají dál bez omezení.
+
+Stav ověříte tak, že v Supabase → **SQL Editor** spustíte
+[`supabase/diagnostika.sql`](supabase/diagnostika.sql). Vypíše, které
+triggery v databázi jsou, jaká platí nastavení a jestli někdo nemá víc
+rezervovaných dnů, než smí.
+
+Oprava je jednoduchá: spusťte znovu celý [`supabase/schema.sql`](supabase/schema.sql).
+Skript je idempotentní, chybějící triggery doplní a existující data nechá být.
+
+Od verze s touto poznámkou aplikace navíc sama zašedne tlačítko *Potvrdit
+rezervaci*, jakmile by výběr limit překročil. Je to jen pohodlí pro uživatele —
+skutečnou pojistkou zůstává databáze.
+
 ## Trestné body
 
 Hlášení může podat kdokoli: zadá SPZ, závažnost a popis. Systém SPZ automaticky
