@@ -45,15 +45,33 @@ nesmí dostat do prohlížeče. Proto je v projektu Edge Function `park-admin`:
 ověří si, že ji volá přihlášený správce, a teprve pak účet založí, změní heslo
 nebo smaže.
 
+Ve složce projektu (kde je `supabase/functions/park-admin/index.ts`):
+
 ```bash
-supabase functions deploy park-admin
+npx supabase login                                  # otevře prohlížeč
+npx supabase link --project-ref eizrqgpkfeixgqymorro
+npx supabase functions deploy park-admin
 ```
+
+`project-ref` je ta část adresy projektu před `.supabase.co` — najdete ji
+i v Supabase pod **Settings → General → Reference ID**.
 
 Žádné tajné klíče nastavovat nemusíte — `SUPABASE_URL`,
 `SUPABASE_ANON_KEY` a `SUPABASE_SERVICE_ROLE_KEY` doplní Supabase sám.
 
+Že je funkce nasazená, ověříte v Supabase v sekci **Edge Functions** —
+`park-admin` tam musí být v seznamu. Nebo z terminálu:
+
+```bash
+curl -i -X OPTIONS https://<project-ref>.supabase.co/functions/v1/park-admin
+```
+
+Nasazená funkce odpoví `200`, chybějící `404` s hlavičkou
+`sb-error-code: NOT_FOUND`.
+
 **Bez nasazené funkce nepůjde zakládat účty.** Zbytek aplikace (rezervace,
-kalendář, trestné body) funguje i bez ní.
+kalendář, trestné body) funguje i bez ní. Aplikace v takovém případě
+při zakládání účtu napíše, že funkce chybí.
 
 ### 2.3 První účet správce
 
