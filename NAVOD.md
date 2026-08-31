@@ -197,7 +197,21 @@ Dokud `FTP_SERVER` chybí, workflow doběhne a nahrání jen přeskočí.
 Pořád je to jeden soubor — `web/index.html` nahrajte FTP klientem
 (Cyberduck, FileZilla) do kořene subdomény. Nic jiného tam nepatří.
 
-## 5. E-maily
+## 5. Vzhled aplikace
+
+V hlavičce vpravo je tlačítko, které přepíná mezi třemi režimy:
+
+| Ikona | Režim |
+| --- | --- |
+| 🌗 | podle nastavení systému (výchozí) |
+| ☀️ | vždy světlý |
+| 🌙 | vždy tmavý |
+
+Volba se pamatuje v prohlížeči, každý kantor si ji tedy nastaví po svém.
+Při režimu „podle systému“ se aplikace přepne sama, když si člověk přepne
+Mac nebo telefon do noci.
+
+## 6. E-maily
 
 Aplikace zatím neposílá žádné e-maily — ani potvrzení rezervací, ani nic
 jiného. Rezervace kantor vidí v aplikaci v záložce **Rezervace**.
@@ -206,7 +220,7 @@ Až budete chtít potvrzovací e-maily přidat, znamená to jednu Edge Function
 a vlastní SMTP (školní Forpsi: `smtp.forpsi.com`, port 587, uživatelské jméno
 je celá adresa schránky). Řekněte si.
 
-## 6. Fyzické označení míst
+## 7. Fyzické označení míst
 
 Aplikace počítá s deseti očíslovanými místy podle vašeho náčrtu — 1–7 v pravém
 pruhu, 8–10 v levém u budovy. **Než to spustíte ostře, čísla musí být vidět
