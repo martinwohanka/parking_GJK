@@ -457,8 +457,9 @@ const DemoDB = {
     {id:'u-svo',  email:'svoboda@gjk.cz', full_name:'Petr Svoboda',  plates:['7EF8901'], role:'teacher', is_active:true, penalty_points:10,phone:'', must_change_password:false},
     {id:'u-dvo',  email:'dvorak@gjk.cz',  full_name:'Eva Dvořáková', plates:['3GH4567'], role:'teacher', is_active:true, penalty_points:0, phone:'', must_change_password:false},
   ],
-  spots: Array.from({length:10},(_,i)=>({id:i+1,label:String(i+1),
-    zone: i+1<=7?'pravý pruh':'levý pruh', is_blocked:false, block_note:'', note:'', sort_order:i+1})),
+  // 9 kolmých stání u zdi (pravý pruh) + 3 podélná u budovy (levý pruh).
+  spots: Array.from({length:12},(_,i)=>({id:i+1,label:String(i+1),
+    zone: i+1<=9?'pravý pruh':'levý pruh', is_blocked:false, block_note:'', note:'', sort_order:i+1})),
   settings:{weekly_hour_limit:20,day_start_hour:7,day_end_hour:16,allow_overnight:true,
     penalty_hours_per_point:1,penalty_block_threshold:20,max_days_ahead:21,
     email_from:'Parkoviště GJK <parkoviste@gjk.cz>'},
@@ -482,7 +483,7 @@ function demoSeed(){
   const d = (n)=> todayIdx + n <= 4 ? todayIdx + n : todayIdx + n + 2;  // přeteče do příštího týdne
   mk(1,'u-nov',d(0),7,12); mk(1,'u-svo',d(2),9,16); mk(2,'u-dvo',d(1),8,10);
   mk(3,'u-nov',d(3),7,16); mk(5,'u-svo',d(0),13,16); mk(7,'u-dvo',d(4),7,9);
-  mk(9,'u-nov',d(2),16,17,true); mk(4,'u-dvo',d(1),14,16);
+  mk(11,'u-nov',d(2),16,17,true); mk(4,'u-dvo',d(1),14,16);
   DemoDB.penalties.push({id:'p1',plate:'7EF8901',target_user:'u-svo',reported_by:'u-dvo',
     reason:'Stál přes dvě místa u vjezdu.',points:5,status:'pending',
     occurred_at:new Date(Date.now()-864e5).toISOString(),admin_note:''});

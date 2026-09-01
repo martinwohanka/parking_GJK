@@ -139,12 +139,19 @@ create table if not exists park_spots (
   sort_order  int not null default 0
 );
 
+-- `id` je jen interní klíč, na který se váže park_reservations.spot_id.
+-- Zobrazuje se `label` – proto lze místa přeznačit (např. při opravě počtu
+-- míst v jednotlivých pruzích), aniž by to smazalo existující rezervace.
+-- "do update" navíc umožňuje spustit skript znovu po změně číslování a
+-- promítnout ji i do už běžící databáze (note a is_blocked se nepřepisují,
+-- protože nejsou v seznamu sloupců za "set").
 insert into park_spots (id, label, zone, sort_order) values
-  (1,'1','pravý pruh',1),  (2,'2','pravý pruh',2),  (3,'3','pravý pruh',3),
-  (4,'4','pravý pruh',4),  (5,'5','pravý pruh',5),  (6,'6','pravý pruh',6),
-  (7,'7','pravý pruh',7),  (8,'8','levý pruh',8),   (9,'9','levý pruh',9),
-  (10,'10','levý pruh',10)
-on conflict (id) do nothing;
+  (1, '1','pravý pruh',1), (2, '2','pravý pruh',2), (3, '3','pravý pruh',3),
+  (4, '4','pravý pruh',4), (5, '5','pravý pruh',5), (6, '6','pravý pruh',6),
+  (7, '7','pravý pruh',7), (11,'8','pravý pruh',8), (12,'9','pravý pruh',9),
+  (8,'10','levý pruh',10), (9,'11','levý pruh',11), (10,'12','levý pruh',12)
+on conflict (id) do update
+  set label = excluded.label, zone = excluded.zone, sort_order = excluded.sort_order;
 
 -- ---------------------------------------------------------------------
 -- 4) REZERVACE

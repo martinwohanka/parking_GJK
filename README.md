@@ -20,7 +20,7 @@ NAVOD.md                              provozní návod – databáze, účty, pr
 | --- | --- |
 | Přístup | mobil i počítač, světlý i tmavý režim, na iPhonu lze přidat na plochu |
 | Účty | zakládá výhradně správce, jen pro adresy `@gjk.cz`; kantor si při prvním přihlášení nastaví vlastní heslo |
-| Plánek | rozmístění podle skutečného parkoviště – podélná stání 8–10 u budovy, kolmá 1–7 u zdi, vjezd i výjezd vlevo dole |
+| Plánek | rozmístění podle skutečného parkoviště – kolmá stání 1–9 u zdi, podélná 10–12 u budovy, vjezd i výjezd vlevo dole |
 | Rezervace | kliknutím na místo se otevře týdenní kalendář po hodinách, označené sloty se potvrdí jedním tlačítkem |
 | Přes noc | samostatný sloupec „noc“ (16:00 → 7:00 dalšího dne) |
 | Limity | týdenní limit v počtu dnů, omezení, jak daleko dopředu lze rezervovat |

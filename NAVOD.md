@@ -10,7 +10,7 @@ mají prefix `park_`, takže se se Studovnou nikde nepotkají.
    spustit i opakovaně, když budete něco měnit.
 3. Zkontrolujte v **Table Editor**, že vzniklo pět tabulek: `park_settings`,
    `park_users`, `park_spots`, `park_reservations`, `park_penalties`,
-   a že v `park_spots` je 10 míst.
+   a že v `park_spots` je 12 míst.
 
 Skript umí i upgrade už běžící databáze — chybějící sloupce si doplní sám.
 
@@ -222,11 +222,16 @@ je celá adresa schránky). Řekněte si.
 
 ## 7. Fyzické označení míst
 
-Aplikace počítá s deseti očíslovanými místy podle vašeho náčrtu — 1–7 v pravém
-pruhu, 8–10 v levém u budovy. **Než to spustíte ostře, čísla musí být vidět
-na parkovišti**, jinak rezervace nedávají smysl. Stačí nastřikované číslo na
-asfalt nebo cedulka na zdi. V `park_spots` jde popisek i zóna kdykoli změnit
-(a přes Správu se místo dá dočasně vyřadit — údržba, sníh, návštěva).
+Aplikace počítá s dvanácti očíslovanými místy podle vašeho náčrtu — 1–9
+v pravém pruhu u zdi, 10–12 v levém u budovy. **Než to spustíte ostře, čísla
+musí být vidět na parkovišti**, jinak rezervace nedávají smysl. Stačí
+nastřikované číslo na asfalt nebo cedulka na zdi.
+
+Popisek i zóna místa jdou kdykoli změnit přímo v `supabase/schema.sql`
+(sekce `insert into park_spots`) — druhé spuštění skriptu v Supabase číslování
+přepíše, aniž by smazalo existující rezervace: `id` je jen interní klíč,
+mění se pouze zobrazovaný `label`. Přes Správu jde místo i dočasně vyřadit
+(údržba, sníh, návštěva).
 
 ---
 
