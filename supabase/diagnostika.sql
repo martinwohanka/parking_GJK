@@ -25,19 +25,20 @@ left join pg_trigger p
 select key as nastaveni, value #>> '{}' as hodnota
   from park_settings order by key;
 
--- 3) Kdo má kolik rezervovaných dnů v jednotlivých týdnech.
---    Sloupec "pres_limit" ukazuje, kde se limit nedodržel.
+-- 3) Kdo má kolik hodin v jednotlivých týdnech.
+--    Noční stání se do limitu nepočítá, proto může být hodin méně,
+--    než by odpovídalo délce rezervací.
 select u.email,
        u.role,
        date_trunc('week', lower(r.period) at time zone 'Europe/Prague')::date as tyden_od,
-       count(distinct (lower(r.period) at time zone 'Europe/Prague')::date)   as dnu,
-       count(*)                                                              as rezervaci,
+       round(sum(park_billable_hours(r.period)), 1)                           as hodin,
+       count(*)                                                               as rezervaci,
        case when u.role = 'admin' then 'správce – bez limitu'
-            when count(distinct (lower(r.period) at time zone 'Europe/Prague')::date)
-                 > greatest((select (value #>> '{}')::int from park_settings where key='weekly_day_limit')
-                            - u.penalty_points / nullif((select (value #>> '{}')::int
-                                from park_settings where key='penalty_points_per_slot'),0), 0)
-            then '✖ PŘES LIMIT' else '✔' end as pres_limit
+            when sum(park_billable_hours(r.period))
+                 > greatest((select (value #>> '{}')::int from park_settings where key='weekly_hour_limit')
+                            - u.penalty_points
+                              * (select (value #>> '{}')::int from park_settings where key='penalty_hours_per_point'), 0)
+            then '✖ PŘES LIMIT' else '✔' end                                  as stav
   from park_reservations r
   join park_users u on u.id = r.user_id
  group by u.email, u.role, u.penalty_points, 3

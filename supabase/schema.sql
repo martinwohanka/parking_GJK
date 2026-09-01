@@ -16,15 +16,21 @@ create table if not exists park_settings (
 );
 
 insert into park_settings (key, value) values
-  ('weekly_day_limit',        '3'::jsonb),      -- kolik dní v týdnu smí mít kantor rezervováno
+  ('weekly_hour_limit',       '20'::jsonb),     -- kolik hodin týdně smí kantor stát na parkovišti
   ('day_start_hour',          '7'::jsonb),      -- začátek rezervovatelného dne
   ('day_end_hour',            '16'::jsonb),     -- konec rezervovatelného dne
   ('allow_overnight',         'true'::jsonb),   -- povolit rezervaci přes noc (do day_start dalšího dne)
-  ('penalty_points_per_slot', '5'::jsonb),      -- kolik trestných bodů ubere jeden den z týdenního limitu
+  ('penalty_hours_per_point', '1'::jsonb),      -- kolik hodin z limitu ubere jeden trestný bod
   ('penalty_block_threshold', '20'::jsonb),     -- od kolika bodů je uživatel zablokován úplně
   ('max_days_ahead',          '21'::jsonb),     -- jak daleko dopředu lze rezervovat
   ('email_from',              '"Parkoviště GJK <parkoviste@gjk.cz>"'::jsonb)
 on conflict (key) do nothing;
+
+-- Doplnění pro databáze založené dřív, kdy se limit počítal ve dnech.
+insert into park_settings (key, value) values
+  ('weekly_hour_limit', '20'::jsonb), ('penalty_hours_per_point', '1'::jsonb)
+on conflict (key) do nothing;
+delete from park_settings where key in ('weekly_day_limit','penalty_points_per_slot');
 
 create or replace function park_setting_int(p_key text, p_default int)
 returns int language sql stable security definer set search_path = public as $$
@@ -35,6 +41,30 @@ create or replace function park_setting_bool(p_key text, p_default boolean)
 returns boolean language sql stable security definer set search_path = public as $$
   select coalesce((select (value #>> '{}')::boolean from park_settings where key = p_key), p_default);
 $$;
+
+/**
+ * Kolik hodin z týdenního limitu rezervace spotřebuje.
+ *
+ * Počítá se jen průnik s provozní dobou dne, ve kterém rezervace začíná.
+ * Noční stání (od konce provozní doby do rána) tak vyjde na nulu – v noci
+ * o místo nikdo jiný nestojí a nemá smysl za něj brát hodiny z limitu.
+ */
+create or replace function park_billable_hours(p tstzrange)
+returns numeric language plpgsql stable security definer set search_path = public as $$
+declare
+  v_den   date;
+  v_okno  tstzrange;
+  v_prnik tstzrange;
+begin
+  if p is null or lower(p) is null or upper(p) is null then return 0; end if;
+  v_den := (lower(p) at time zone 'Europe/Prague')::date;
+  v_okno := tstzrange(
+    (v_den + make_interval(hours => park_setting_int('day_start_hour', 7)))  at time zone 'Europe/Prague',
+    (v_den + make_interval(hours => park_setting_int('day_end_hour',  16)))  at time zone 'Europe/Prague');
+  v_prnik := p * v_okno;
+  if isempty(v_prnik) then return 0; end if;
+  return round(extract(epoch from (upper(v_prnik) - lower(v_prnik))) / 3600.0, 2);
+end $$;
 
 -- ---------------------------------------------------------------------
 -- 2) UŽIVATELÉ (profil navázaný na auth.users)
@@ -144,15 +174,16 @@ returns trigger language plpgsql security definer set search_path = public as $$
 declare
   v_is_admin    boolean := park_is_admin();
   v_user        park_users%rowtype;
-  v_limit       int := park_setting_int('weekly_day_limit', 3);
-  v_per_slot    int := park_setting_int('penalty_points_per_slot', 5);
+  v_limit       int := park_setting_int('weekly_hour_limit', 20);
+  v_per_point   int := park_setting_int('penalty_hours_per_point', 1);
   v_block_at    int := park_setting_int('penalty_block_threshold', 20);
   v_max_ahead   int := park_setting_int('max_days_ahead', 21);
   v_start       timestamptz := lower(new.period);
   v_end         timestamptz := upper(new.period);
-  v_days_used   int;
+  v_hours_used  numeric;
+  v_hours_new   numeric;
   v_week_start  date;
-  v_effective   int;
+  v_effective   numeric;
   v_spot        park_spots%rowtype;
 begin
   if v_start is null or v_end is null or v_end <= v_start then
@@ -211,22 +242,27 @@ begin
     raise exception 'Rezervace přes noc nejsou povoleny.';
   end if;
 
-  -- Týdenní limit v počtu odlišných dní (pondělí = začátek týdne)
+  -- Týdenní limit v hodinách strávených na parkovišti (pondělí = začátek týdne).
+  -- Noční stání se nezapočítává, viz park_billable_hours().
   v_week_start := date_trunc('week', v_start at time zone 'Europe/Prague')::date;
 
-  select count(distinct (lower(period) at time zone 'Europe/Prague')::date)
-    into v_days_used
+  select coalesce(sum(park_billable_hours(period)), 0)
+    into v_hours_used
     from park_reservations
    where user_id = new.user_id
+     and id is distinct from new.id          -- při úpravě nepočítáme sami sebe
      and (lower(period) at time zone 'Europe/Prague')::date
-         between v_week_start and v_week_start + 4
-     and (lower(period) at time zone 'Europe/Prague')::date
-         <> (v_start at time zone 'Europe/Prague')::date;
+         between v_week_start and v_week_start + 4;
 
-  v_effective := greatest(v_limit - (v_user.penalty_points / nullif(v_per_slot,0)), 0);
+  v_hours_new := park_billable_hours(new.period);
+  v_effective := greatest(v_limit - v_user.penalty_points * v_per_point, 0);
 
-  if v_days_used + 1 > v_effective then
-    raise exception 'Vyčerpali jste týdenní limit % rezervovaných dnů (využito %).', v_effective, v_days_used;
+  if v_hours_used + v_hours_new > v_effective then
+    raise exception
+      'Týdenní limit je % h a máte využito % h. Tato rezervace by přidala další % h.',
+      trim(to_char(v_effective, 'FM999990.##')),
+      trim(to_char(v_hours_used, 'FM999990.##')),
+      trim(to_char(v_hours_new,  'FM999990.##'));
   end if;
 
   return new;

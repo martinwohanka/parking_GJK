@@ -236,21 +236,19 @@ Všechno se dá měnit ve Správě, tohle jsou výchozí hodnoty:
 
 | Nastavení | Výchozí | Co dělá |
 |---|---|---|
-| Týdenní limit | 3 dny | Kolik **dnů** v týdnu smí mít kantor rezervováno. Délka rezervace v rámci dne se nepočítá — kdo přijede na dvě hodiny, spálí stejnou „známku“ jako ten, kdo stojí celý den. |
+| Týdenní limit | 20 h | Kolik **hodin** týdně smí kantor stát na parkovišti. Celodenní stání 7–16 spotřebuje 9 h, dvouhodinová zastávka 2 h. |
 | Provozní doba | 7–16 h | Rezervovatelné hodiny, po hodinových slotech. |
-| Přes noc | povoleno | Sloupec „noc“ = 16:00 → 7:00 dalšího dne. |
+| Přes noc | povoleno | Sloupec „noc“ = 16:00 → 7:00 dalšího dne. **Do limitu se nepočítá** — v noci o místo nikdo jiný nestojí. |
 | Dopředu | 21 dní | Jak daleko se dá rezervovat. |
-| Body za den limitu | 5 | Každých 5 trestných bodů ubere jeden rezervovatelný den v týdnu. |
+| Hodin za trestný bod | 1 | Každý trestný bod ubere jednu hodinu z týdenního limitu. |
 | Úplné zablokování | 20 bodů | Nad tuto hranici uživatel nemůže rezervovat vůbec. |
 
-Limit se počítá od pondělí a jen za pracovní dny. Rozhoduje **den začátku**
-rezervace: kdo si vezme jedno místo od 7 do 16 hodin a k tomu ještě jinou
-hodinu jinde téhož dne, spálí pořád jen jeden den z limitu.
+Limit se počítá od pondělí a jen za pracovní dny. Započítává se pouze průnik
+rezervace s provozní dobou, takže se platí jen za čas, kdy o místo mohl stát
+někdo další.
 
-Z toho plyne věc, která na první pohled vypadá jako chyba: i když aplikace
-hlásí, že zbývá **0 dnů**, jde dál rezervovat — ale jen hodiny ve dnech,
-které už člověk zabrané má. Nový den se nepřidá. Aplikace na to v takové
-situaci sama upozorní.
+Kolik hodin zbývá, vidí kantor v liště nad plánkem i v patičce detailu místa.
+Jakmile by výběr limit překročil, tlačítko *Potvrdit rezervaci* zašedne.
 
 Kontrola běží v databázi (trigger `park_check_reservation`), ne v prohlížeči —
 kantor ji obejít nemůže.
@@ -264,17 +262,23 @@ triggeru `park_check_reservation` zrušit podmínku `if v_is_admin ...`.
 
 ## Když limit nehlídá
 
-Aplikace ukazuje, kolik dnů zbývá, ale samotné pravidlo vynucuje databáze —
+Aplikace ukazuje, kolik hodin zbývá, ale samotné pravidlo vynucuje databáze —
 trigger `park_check_reservation`. Když ten v databázi chybí nebo je vypnutý,
 aplikace sice odpočítává, ale rezervace se zakládají dál bez omezení.
 
 Stav ověříte tak, že v Supabase → **SQL Editor** spustíte
 [`supabase/diagnostika.sql`](supabase/diagnostika.sql). Vypíše, které
 triggery v databázi jsou, jaká platí nastavení a jestli někdo nemá víc
-rezervovaných dnů, než smí.
+naparkovaných hodin, než smí.
 
 Oprava je jednoduchá: spusťte znovu celý [`supabase/schema.sql`](supabase/schema.sql).
-Skript je idempotentní, chybějící triggery doplní a existující data nechá být.
+Skript je idempotentní, chybějící triggery doplní a existující rezervace nechá být.
+
+> **Přechod z dnů na hodiny.** Dřívější verze počítala limit ve dnech
+> (`weekly_day_limit`). Nové spuštění `schema.sql` tato nastavení odstraní
+> a založí `weekly_hour_limit` (20 h) a `penalty_hours_per_point` (1 h).
+> Pokud jste si limit dnů měnil, nastavte si po migraci hodinu ve Správě —
+> orientačně: 2 celé dny ≈ 18 h, 3 celé dny ≈ 27 h.
 
 Od verze s touto poznámkou aplikace navíc sama zašedne tlačítko *Potvrdit
 rezervaci*, jakmile by výběr limit překročil. Je to jen pohodlí pro uživatele —
