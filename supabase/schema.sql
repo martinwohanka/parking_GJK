@@ -149,7 +149,8 @@ insert into park_spots (id, label, zone, sort_order) values
   (1, '1','pravý pruh',1), (2, '2','pravý pruh',2), (3, '3','pravý pruh',3),
   (4, '4','pravý pruh',4), (5, '5','pravý pruh',5), (6, '6','pravý pruh',6),
   (7, '7','pravý pruh',7), (11,'8','pravý pruh',8), (12,'9','pravý pruh',9),
-  (8,'10','levý pruh',10), (9,'11','levý pruh',11), (10,'12','levý pruh',12)
+  (13,'10','pravý pruh',10),
+  (8,'11','levý pruh',11), (9,'12','levý pruh',12), (10,'13','levý pruh',13)
 on conflict (id) do update
   set label = excluded.label, zone = excluded.zone, sort_order = excluded.sort_order;
 

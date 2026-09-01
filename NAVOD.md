@@ -10,7 +10,7 @@ mají prefix `park_`, takže se se Studovnou nikde nepotkají.
    spustit i opakovaně, když budete něco měnit.
 3. Zkontrolujte v **Table Editor**, že vzniklo pět tabulek: `park_settings`,
    `park_users`, `park_spots`, `park_reservations`, `park_penalties`,
-   a že v `park_spots` je 12 míst.
+   a že v `park_spots` je 13 míst.
 
 Skript umí i upgrade už běžící databáze — chybějící sloupce si doplní sám.
 
@@ -222,8 +222,8 @@ je celá adresa schránky). Řekněte si.
 
 ## 7. Fyzické označení míst
 
-Aplikace počítá s dvanácti očíslovanými místy podle vašeho náčrtu — 1–9
-v pravém pruhu u zdi, 10–12 v levém u budovy. **Než to spustíte ostře, čísla
+Aplikace počítá s třinácti očíslovanými místy podle vašeho náčrtu — 1–10
+v pravém pruhu u zdi, 11–13 v levém u budovy. **Než to spustíte ostře, čísla
 musí být vidět na parkovišti**, jinak rezervace nedávají smysl. Stačí
 nastřikované číslo na asfalt nebo cedulka na zdi.
 
